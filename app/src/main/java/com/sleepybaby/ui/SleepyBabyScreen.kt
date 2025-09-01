@@ -455,9 +455,7 @@ fun SleepyBabyScreen(
                             scope.launch {
                                 val seconds = value.toInt()
                                 settingsRepository.updateCryThreshold(seconds)
-                                service?.let {
-                                    it.updateConfig(automationConfig.copy(cryThresholdSeconds = seconds))
-                                }
+                                service?.updateConfig(automationConfig.copy(cryThresholdSeconds = seconds))
                             }
                         },
                         valueRange = 1f..10f,
@@ -477,9 +475,7 @@ fun SleepyBabyScreen(
                             scope.launch {
                                 val seconds = value.toInt()
                                 settingsRepository.updateSilenceThreshold(seconds)
-                                service?.let {
-                                    it.updateConfig(automationConfig.copy(silenceThresholdSeconds = seconds))
-                                }
+                                service?.updateConfig(automationConfig.copy(silenceThresholdSeconds = seconds))
                             }
                         },
                         valueRange = 5f..30f,
@@ -498,9 +494,7 @@ fun SleepyBabyScreen(
                         onValueChange = { value ->
                             scope.launch {
                                 settingsRepository.updateTargetVolume(value)
-                                service?.let {
-                                    it.updateConfig(automationConfig.copy(targetVolume = value))
-                                }
+                                service?.updateConfig(automationConfig.copy(targetVolume = value))
                             }
                         },
                         valueRange = 0.1f..1f

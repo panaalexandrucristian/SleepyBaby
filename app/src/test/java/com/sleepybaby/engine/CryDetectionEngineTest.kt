@@ -2,7 +2,6 @@ package com.sleepybaby.engine
 
 import com.sleepybaby.core.ai.ClassificationResult
 import com.sleepybaby.core.ai.CryClassifier
-import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.Assert.*
 

@@ -105,7 +105,7 @@ class NoisePlayer(private val context: Context) {
      * Fade in to target volume
      * @param durationMs Fade duration in milliseconds
      */
-    suspend fun fadeIn(durationMs: Long) {
+    private fun fadeIn(durationMs: Long) {
         fadeJob?.cancel()
         fadeJob = coroutineScope.launch {
             val player = exoPlayer ?: return@launch
@@ -133,7 +133,7 @@ class NoisePlayer(private val context: Context) {
      * Fade out to silence
      * @param durationMs Fade duration in milliseconds
      */
-    suspend fun fadeOut(durationMs: Long) {
+    fun fadeOut(durationMs: Long) {
         fadeJob?.cancel()
         fadeJob = coroutineScope.launch {
             val player = exoPlayer ?: return@launch

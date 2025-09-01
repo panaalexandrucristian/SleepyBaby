@@ -13,7 +13,6 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import com.sleepybaby.R
 import com.sleepybaby.audio.ShushRecorder
 import com.sleepybaby.engine.AutomationConfig
 import com.sleepybaby.engine.AutomationState
