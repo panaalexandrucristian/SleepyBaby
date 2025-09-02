@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SleepyBaby</string>
+    <string name="microphone_permission_required">Permisiunea pentru microfon este necesară pentru detectarea plânsului.</string>
+    <string name="microphone_permission_instructions">Acordă permisiunea din setările sistemului pentru a activa detectarea.</string>
+    <string name="detector_unavailable">Detectorul nu a putut fi inițializat. Repornește aplicația și încearcă din nou.</string>
+    <string name="detector_info">Folosește detectorul local integrat, fără fișiere suplimentare.</string>
+
+    <string name="shush_recording_title">Înregistrează sunetul „shh”</string>
+    <string name="shush_recording_description">Ține telefonul aproape și șoptește „shh” timp de 10 secunde. Sleepy Baby îți va reda înregistrarea de fiecare dată când detectează plânsul.</string>
+    <string name="shush_record_button">Înregistrează 10s „shh”</string>
+    <string name="shush_recording_in_progress">Se înregistrează…</string>
+    <string name="shush_recording_countdown">Mai sunt %1$d secunde</string>
+    <string name="shush_record_success">Sunetul liniștitor personal a fost salvat.</string>
+    <string name="shush_record_failure">Înregistrarea a eșuat. Te rugăm să reîncerci.</string>
+    <string name="shush_record_available">Sunetul liniștitor personal este activ.</string>
+    <string name="shush_record_missing">Nu există încă un sunet personal.</string>
+    <string name="shush_preview_button_play">Redă sunetul</string>
+    <string name="shush_preview_button_stop">Oprește previzualizarea</string>
+    <string name="shush_preview_playing">Se redă sunetul tău liniștitor.</string>
+    <string name="shush_preview_finished">Previzualizarea s-a încheiat.</string>
+    <string name="shush_preview_stopped">Previzualizarea a fost oprită.</string>
+    <string name="shush_preview_failed">Nu putem reda înregistrarea.</string>
+
+    <!-- Navigation / sections -->
+    <string name="title_sounds">Sunete</string>
+    <string name="title_favorites">Favorite</string>
+    <string name="title_recordings">Înregistrări</string>
+    <string name="title_settings">Setări</string>
+    <string name="title_timer">Temporizator</string>
+    <string name="title_about">Despre Sleepy Baby</string>
+    <string name="title_privacy_policy">Politica de confidențialitate</string>
+    <string name="title_terms">Termeni și condiții</string>
+    <string name="title_premium">Premium</string>
+
+    <!-- Buttons -->
+    <string name="btn_play">Redă</string>
+    <string name="btn_pause">Pauză</string>
+    <string name="btn_stop">Stop</string>
+    <string name="btn_next">Următor</string>
+    <string name="btn_previous">Anterior</string>
+    <string name="btn_record">Înregistrează</string>
+    <string name="btn_save">Salvează</string>
+    <string name="btn_cancel">Anulează</string>
+    <string name="btn_delete">Șterge</string>
+    <string name="btn_close">Închide</string>
+    <string name="btn_ok">OK</string>
+    <string name="btn_yes">Da</string>
+    <string name="btn_no">Nu</string>
+    <string name="btn_skip">Omite</string>
+    <string name="btn_retry">Reîncearcă</string>
+    <string name="btn_settings">Setări</string>
+    <string name="btn_favorite_add">Adaugă la favorite</string>
+    <string name="btn_try_premium">Încearcă Premium</string>
+    <string name="btn_subscribe">Abonează-te</string>
+    <string name="btn_subscribe_annual">Abonare anuală</string>
+    <string name="btn_contact">Contactează-ne</string>
+    <string name="btn_share">Distribuie</string>
+    <string name="btn_rate">Evaluează-ne</string>
+
+    <!-- Notifications -->
+    <string name="notif_timer_done">Temporizatorul a oprit sunetul.</string>
+    <string name="notif_new_sounds">Sunete noi sunt disponibile în Sleepy Baby!</string>
+    <string name="notif_trial_days">Mai ai %1$d zile de testare gratuită.</string>
+    <string name="notif_premium_thanks">Îți mulțumim că ai ales versiunea Premium!</string>
+
+    <!-- Marketing descriptions -->
+    <string name="desc_welcome">Bine ai venit în Sleepy Baby, aplicația care te ajută să adormi bebelușul cu sunete relaxante și cântece de leagăn. Împreună pentru nopți liniștite.</string>
+    <string name="desc_content">Alege dintre zeci de sunete relaxante pentru ora de culcare.</string>
+    <string name="desc_timer">Setează un temporizator pentru ca sunetele să se oprească automat după durata aleasă. Astfel, poți adormi bebelușul fără grija de a opri manual aplicația.</string>
+    <string name="desc_recording">Înregistrează-ți vocea cântând un cântec de leagăn preferat. Salvează-l și folosește-l ori de câte ori bebelușul vrea să-ți audă vocea.</string>
+    <string name="desc_night_light">Activează lumina de veghe: ecranul emite o strălucire discretă cât timp redă sunetele, oferind confort în întuneric.</string>
+    <string name="desc_theme">Comută între tema luminoasă și cea întunecată pentru a folosi aplicația confortabil, ziua sau noaptea.</string>
+    <string name="desc_premium">Versiunea Premium îți oferă acces la toate sunetele și funcțiile, fără limite. Bucură-te de conținut nou, adăugat periodic, fără întreruperi.</string>
+
+    <!-- Empty states / messages -->
+    <string name="msg_no_favorites">Nu ai încă sunete favorite.</string>
+    <string name="msg_no_recordings">Nu ai încă înregistrări salvate.</string>
+    <string name="msg_favorite_added">„%1$s” a fost adăugat la favorite.</string>
+    <string name="msg_favorite_removed">„%1$s” a fost eliminat din favorite.</string>
+    <string name="msg_record_saved">Înregistrarea a fost salvată.</string>
+    <string name="msg_record_deleted">Înregistrarea a fost ștearsă.</string>
+    <string name="msg_error_audio">Nu se poate reda sunetul.</string>
+    <string name="msg_error_record">Înregistrarea a eșuat. Încearcă din nou.</string>
+
+    <!-- App specific UI labels -->
+    <string name="appbar_title">Sleepy Baby</string>
+
+    <!-- Hero / Status -->
+    <string name="hero_status_on">Sleepy Baby ascultă</string>
+    <string name="hero_status_off">Sleepy Baby se odihnește</string>
+    <string name="hero_desc_on">Sleepy Baby ascultă blând și îți va reda sunetul liniștitor.</string>
+    <string name="hero_desc_off">Pentru a te ajuta, Sleepy Baby are nevoie să poată asculta.</string>
+    <string name="hero_info_1">În timp real</string>
+    <string name="hero_info_2_has_custom">Sunetul tău liniștitor e activ</string>
+    <string name="hero_info_2_no_custom">Shush standard activ</string>
+
+    <!-- Monitor card -->
+    <string name="monitor_title">Monitorizare activă</string>
+    <string name="monitor_subtitle_on">Sleepy Baby e atent la bebeluș.</string>
+    <string name="monitor_subtitle_off">Pentru a porni, Sleepy Baby are nevoie să poată asculta.</string>
+    <string name="monitor_helper">De aici poți porni, opri și urmări detectarea plânsului.</string>
+    <string name="monitor_helper_requires_recording">Înregistrează un sunet liniștitor înainte de a porni monitorizarea.</string>
+    <string name="monitor_toggle_title">Pornește ascultarea</string>
+    <string name="monitor_toggle_support_on">Sleepy Baby te anunță blând, fără să te deranjeze.</string>
+    <string name="monitor_toggle_support_off">Sleepy Baby are nevoie de acces la microfon pentru a asculta.</string>
+    <string name="monitor_needs_recording">Înregistrează un sunet liniștitor înainte de a porni.</string>
+    <string name="monitor_btn_start">Pornește</string>
+    <string name="monitor_btn_stop">Oprește</string>
+
+    <!-- Engine state labels -->
+    <string name="state_listening">Ascultă</string>
+    <string name="state_pending">Confirmă plânsul</string>
+    <string name="state_playing">Redă shush</string>
+    <string name="state_fading">Reduce volumul</string>
+    <string name="state_stopped">Oprit</string>
+
+    <!-- Parameters section -->
+    <string name="params_title">Parametri fini</string>
+    <string name="params_subtitle">Ajustează sensibilitatea și volumul pentru familia ta.</string>
+    <string name="param_cry_threshold">Prag plâns: %1$ds</string>
+    <string name="param_silence_threshold">Prag liniște: %1$ds</string>
+    <string name="param_target_volume">Volum țintă: %1$d%%</string>
+
+    <!-- Info card -->
+    <string name="how_title">Cum funcționează</string>
+    <string name="how_bullets">• Ascultă discret în fundal folosind detectarea locală
+• Redă sunetul liniștitor după ce detectează plânsul
+• Reduce gradual volumul pe măsură ce bebelușul se liniștește
+• Culori aliniate brandului Sleepy Baby, alb și albastru</string>
+
+    <!-- Foreground notification -->
+    <string name="notif_channel_name">Serviciul Sleepy Baby</string>
+    <string name="notif_channel_desc">Serviciu de automatizare pentru detectarea plânsului</string>
+    <string name="notif_title">Sleepy Baby activ</string>
+    <string name="notif_listening">Ascultă plânsul bebelușului…</string>
+    <string name="notif_pending">Plâns detectat (%1$ds)</string>
+    <string name="notif_playing">Redă sunete liniștitoare</string>
+    <string name="notif_fading">Se estompează…</string>
+    <string name="notif_stopped">Serviciu oprit</string>
+    <string name="notif_action_stop">Oprește</string>
+</resources>

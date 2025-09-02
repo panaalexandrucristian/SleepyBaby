@@ -1,0 +1,117 @@
+package ro.pana.sleepybaby.data
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.preferencesDataStore
+import ro.pana.sleepybaby.engine.AutomationConfig
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+/**
+ * Repository for persisting SleepyBaby settings using DataStore
+ */
+class SettingsRepository(private val context: Context) {
+
+    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "sleepy_baby_settings")
+
+    companion object {
+        private val CRY_THRESHOLD_SECONDS = intPreferencesKey("cry_threshold_seconds")
+        private val SILENCE_THRESHOLD_SECONDS = intPreferencesKey("silence_threshold_seconds")
+        private val FADE_IN_MS = longPreferencesKey("fade_in_ms")
+        private val FADE_OUT_MS = longPreferencesKey("fade_out_ms")
+        private val TARGET_VOLUME = floatPreferencesKey("target_volume")
+        private val TRACK_ID = stringPreferencesKey("track_id")
+        private val ENABLED = booleanPreferencesKey("enabled")
+    }
+
+    /**
+     * Flow of automation configuration
+     */
+    val automationConfig: Flow<AutomationConfig> = context.dataStore.data.map { preferences ->
+        AutomationConfig(
+            cryThresholdSeconds = preferences[CRY_THRESHOLD_SECONDS] ?: 3,
+            silenceThresholdSeconds = preferences[SILENCE_THRESHOLD_SECONDS] ?: 10,
+            fadeInMs = preferences[FADE_IN_MS] ?: 10000L,
+            fadeOutMs = preferences[FADE_OUT_MS] ?: 5000L,
+            targetVolume = preferences[TARGET_VOLUME] ?: 0.7f,
+            trackId = preferences[TRACK_ID] ?: "asset:///shhh_loop.mp3"
+        )
+    }
+
+    /**
+     * Flow of enabled state
+     */
+    val isEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[ENABLED] ?: false
+    }
+
+    /**
+     * Update cry threshold seconds
+     */
+    suspend fun updateCryThreshold(seconds: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[CRY_THRESHOLD_SECONDS] = seconds
+        }
+    }
+
+    /**
+     * Update silence threshold seconds
+     */
+    suspend fun updateSilenceThreshold(seconds: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[SILENCE_THRESHOLD_SECONDS] = seconds
+        }
+    }
+
+    /**
+     * Update target volume
+     */
+    suspend fun updateTargetVolume(volume: Float) {
+        context.dataStore.edit { preferences ->
+            preferences[TARGET_VOLUME] = volume.coerceIn(0f, 1f)
+        }
+    }
+
+    /**
+     * Update playback track id
+     */
+    suspend fun updateTrackId(trackId: String) {
+        context.dataStore.edit { preferences ->
+            preferences[TRACK_ID] = trackId
+        }
+    }
+
+    /**
+     * Update fade durations
+     */
+    suspend fun updateFadeDurations(fadeInMs: Long, fadeOutMs: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[FADE_IN_MS] = fadeInMs
+            preferences[FADE_OUT_MS] = fadeOutMs
+        }
+    }
+
+    /**
+     * Update enabled state
+     */
+    suspend fun updateEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Update full automation config
+     */
+    suspend fun updateAutomationConfig(config: AutomationConfig) {
+        context.dataStore.edit { preferences ->
+            preferences[CRY_THRESHOLD_SECONDS] = config.cryThresholdSeconds
+            preferences[SILENCE_THRESHOLD_SECONDS] = config.silenceThresholdSeconds
+            preferences[FADE_IN_MS] = config.fadeInMs
+            preferences[FADE_OUT_MS] = config.fadeOutMs
+            preferences[TARGET_VOLUME] = config.targetVolume
+            preferences[TRACK_ID] = config.trackId
+        }
+    }
+}

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.sleepybaby"
+    namespace = "ro.pana.sleepybaby"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.sleepybaby"
+        applicationId = "ro.pana.sleepybaby"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -68,9 +68,6 @@ dependencies {
 
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
-
-    implementation(libs.onnx.runtime)
-    implementation(libs.tensorflow.lite)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
