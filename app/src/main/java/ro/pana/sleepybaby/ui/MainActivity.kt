@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
     private var bound = false
     private lateinit var settingsRepository: SettingsRepository
     private var hasAudioPermission by mutableStateOf(false)
+    private var screenBrightness = 1f
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -97,6 +98,9 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         hideSystemBars()
 
+        screenBrightness = currentWindowBrightness()
+        setWindowBrightness(screenBrightness)
+
         settingsRepository = SettingsRepository(this)
 
         checkAudioPermission()
@@ -111,7 +115,12 @@ class MainActivity : ComponentActivity() {
                     SleepyBabyScreen(
                         service = sleepyBabyService,
                         settingsRepository = settingsRepository,
-                        hasAudioPermission = hasAudioPermission
+                        hasAudioPermission = hasAudioPermission,
+                        initialBrightness = screenBrightness,
+                        onBrightnessChanged = { value ->
+                            screenBrightness = value
+                            setWindowBrightness(screenBrightness)
+                        }
                     )
                 }
             }
@@ -138,6 +147,7 @@ class MainActivity : ComponentActivity() {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
             hideSystemBars()
+            setWindowBrightness(screenBrightness)
         }
     }
 
@@ -174,5 +184,17 @@ class MainActivity : ComponentActivity() {
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             hide(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars())
         }
+    }
+
+    private fun currentWindowBrightness(): Float {
+        val rawValue = window.attributes.screenBrightness
+        return if (rawValue in 0f..1f) rawValue else 1f
+    }
+
+    private fun setWindowBrightness(value: Float) {
+        val clamped = value.coerceIn(0.1f, 1f)
+        val params = window.attributes
+        params.screenBrightness = clamped
+        window.attributes = params
     }
 }

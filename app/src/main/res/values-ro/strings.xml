@@ -108,6 +108,12 @@
     <string name="monitor_btn_start">Pornește</string>
     <string name="monitor_btn_stop">Oprește</string>
 
+    <!-- Brightness -->
+    <string name="brightness_title">Luminozitate ecran</string>
+    <string name="brightness_subtitle">Redu lumina pentru ca bebelușul să se odihnească.</string>
+    <string name="brightness_value">Luminozitate: %1$d%%</string>
+    <string name="brightness_helper">Glisează spre stânga ca să diminuezi lumina în timp ce Sleepy Baby rămâne pornit.</string>
+
     <!-- Engine state labels -->
     <string name="state_listening">Ascultă</string>
     <string name="state_pending">Confirmă plânsul</string>

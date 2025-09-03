@@ -37,9 +37,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,7 +65,9 @@ import kotlin.math.roundToInt
 fun SleepyBabyScreen(
     service: SleepyBabyService?,
     settingsRepository: SettingsRepository,
-    hasAudioPermission: Boolean
+    hasAudioPermission: Boolean,
+    initialBrightness: Float,
+    onBrightnessChanged: (Float) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -79,6 +83,16 @@ fun SleepyBabyScreen(
     var shushStatusMessage by remember { mutableStateOf<String?>(null) }
     var shushCountdownSeconds by remember { mutableStateOf<Int?>(null) }
     val hasCustomShush = automationConfig.trackId.startsWith("file://")
+    var brightness by rememberSaveable {
+        mutableFloatStateOf(initialBrightness.coerceIn(0.1f, 1f))
+    }
+
+    LaunchedEffect(initialBrightness) {
+        val coerced = initialBrightness.coerceIn(0.1f, 1f)
+        if (brightness != coerced) {
+            brightness = coerced
+        }
+    }
 
     LaunchedEffect(automationConfig.trackId) {
         isPlayingShush = false
@@ -280,6 +294,35 @@ fun SleepyBabyScreen(
                         }
                 }
             }
+            }
+
+            SectionCard(
+                title = stringResource(id = R.string.brightness_title),
+                subtitle = stringResource(id = R.string.brightness_subtitle)
+            ) {
+                val brightnessLabel = stringResource(
+                    id = R.string.brightness_value,
+                    (brightness * 100).roundToInt()
+                )
+
+                SliderSetting(
+                    title = brightnessLabel,
+                    value = brightness,
+                    valueRange = 0.1f..1f,
+                    steps = 0
+                ) { value ->
+                    val clamped = value.coerceIn(0.1f, 1f)
+                    if (brightness != clamped) {
+                        brightness = clamped
+                    }
+                    onBrightnessChanged(clamped)
+                }
+
+                Text(
+                    text = stringResource(id = R.string.brightness_helper),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             SectionCard(

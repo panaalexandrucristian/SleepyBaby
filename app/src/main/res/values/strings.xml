@@ -108,6 +108,12 @@
     <string name="monitor_btn_start">Start</string>
     <string name="monitor_btn_stop">Stop</string>
 
+    <!-- Brightness -->
+    <string name="brightness_title">Screen brightness</string>
+    <string name="brightness_subtitle">Dim the display so baby can rest easier.</string>
+    <string name="brightness_value">Brightness: %1$d%%</string>
+    <string name="brightness_helper">Slide left to reduce the light while Sleepy Baby stays on.</string>
+
     <!-- Engine state labels -->
     <string name="state_listening">Listening</string>
     <string name="state_pending">Confirming cry</string>
