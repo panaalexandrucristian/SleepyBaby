@@ -18,6 +18,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import ro.pana.sleepybaby.data.SettingsRepository
 import ro.pana.sleepybaby.core.ai.OnDeviceCryClassifier
@@ -91,6 +94,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        hideSystemBars()
+
         settingsRepository = SettingsRepository(this)
 
         checkAudioPermission()
@@ -128,6 +134,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            hideSystemBars()
+        }
+    }
+
     private fun checkAudioPermission() {
         when {
             ContextCompat.checkSelfPermission(
@@ -152,6 +165,14 @@ class MainActivity : ComponentActivity() {
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    private fun hideSystemBars() {
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars())
         }
     }
 }
