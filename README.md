@@ -1,62 +1,62 @@
 # SleepyBaby – Cry Detection & Soothing
 
-SleepyBaby este o aplicație Android construită cu Jetpack Compose care detectează plânsul local, folosind un detector energetic simplu, și redă un sunet liniștitor. Totul rulează offline, fără modele externe sau servicii cloud.
+SleepyBaby is an Android app built with Jetpack Compose that detects crying locally using a lightweight energy-based approach and plays a soothing shush loop. Everything runs offline—no external ML models or cloud services are required.
 
-## Funcționalități
+## Features
 
-- **Detectare locală** bazată pe analiza energiei mel-spectrogramelor.
-- **Serviciu în prim-plan** care continuă să ruleze în fundal cu notificare persistentă.
-- **Setări persistente** (DataStore) pentru praguri de plâns/liniște și volum.
-- **Înregistrare “shh” personalizat**: salvează un sample de 10s și previzualizează-l din aplicație.
-- **UI Compose** modern cu Material 3 și culori alb/albastru inspirate de brandingul Facebook.
+- **Local detection** that analyses mel-spectrogram energy to decide when to react.
+- **Foreground service** that keeps automation alive with a persistent notification.
+- **Personal shush recording**: capture a 10s sample, preview it, and keep monitoring gated until a custom loop exists.
+- **Material 3 UI** with a blue & white palette, immersive full-screen mode, and an in-app brightness slider for night use.
+- **Persistent settings** via DataStore for cry/silence thresholds, target volume, and automation state.
 
-## Cum rulezi proiectul
+## Getting Started
 
 ```bash
 ./gradlew assembleDebug
 adb install app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Permisiuni necesare:
-1. Microfon – obligatoriu pentru detectarea plânsului.
-2. Notificări – pentru a menține serviciul în prim-plan (Android 13+).
+Required runtime permissions:
+1. **Microphone** – mandatory so the cry detector can listen.
+2. **Notifications** (Android 13+) – needed to run the foreground service.
 
 ## Assets
 
-Adaugă fișierele necesare în `app/src/main/assets/`:
+Place the soothing loop in `app/src/main/assets/`:
 ```
 app/src/main/assets/
-└── shhh_loop.mp3    # audio liniștitor redat în fundal
+└── shhh_loop.mp3    # default shush loop played after a cry is detected
 ```
 
-## Flux de utilizare
+## Usage Flow
 
-1. Deschide aplicația și acordă permisiunea pentru microfon.
-2. Înregistrează (opțional) un nou sunet “shh” din secțiunea „Detectare & sunete”.
-3. Ajustează pragurile și volumul după preferințe.
-4. Pornește detectarea – serviciul va rămâne activ în fundal și va reda sunetul când detectează plânsul.
+1. Launch the app and grant microphone (and notification, if prompted) permissions.
+2. Record your own shush in the **Active monitoring** section; monitoring stays disabled until a custom track is saved.
+3. Adjust cry/silence thresholds, target volume, and screen brightness to match your nursery.
+4. Start monitoring—the foreground service keeps listening and plays the loop whenever crying is detected, then fades out when silence returns.
 
-## Arhitectură
+## Architecture
 
-- `CryDetectionEngine` – gestionează captarea audio, clasificarea și automatizarea stărilor.
-- `MelSpecExtractor` – transformă PCM-ul în mel-spectrograme.
-- `EnergyCryClassifier` – classifierul simplu, bazat pe energie, folosit atât pentru UI cât și pentru logica de fundal.
-- `SleepyBabyService` – serviciul în prim-plan care rulează motorul de detecție.
-- `NoisePlayer` / `ShushRecorder` – controlul audio pentru redare și înregistrare.
+- `CryDetectionEngine` – orchestrates audio capture, classification, and state automation.
+- `MelSpecExtractor` – converts PCM into mel-spectrogram frames for the energy check.
+- `EnergyCryClassifier` – the simple energy classifier shared by the UI and background service.
+- `SleepyBabyService` – foreground service that hosts the detection engine and manages playback.
+- `NoisePlayer` / `ShushRecorder` – handle playback of the loop and capture of the custom shush sample.
 
-## Note tehnice
+## Technical Notes
 
-- **AudioRecord** la 16kHz mono, ferestre de 1s cu suprapunere.
-- **Compose Material 3** pentru UI, cu teme alb/albastru dedicate.
-- **Media3 ExoPlayer** pentru redarea sunetelor liniștitoare.
-- **Coroutines** și `StateFlow` pentru actualizări reactive.
+- **AudioRecord** at 16 kHz mono with 1-second windows and overlap.
+- **Jetpack Compose Material 3** theming, tuned for blue/white branding and full-screen layouts.
+- **Media3 ExoPlayer** for seamless loop playback and previews.
+- **Coroutines** with `StateFlow` to deliver reactive updates to the UI and notification layer.
 
-## Testare
+## Testing
 
 ```bash
 ./gradlew test
 ```
 
-## Licență
+## License
 
-Proiect personal – folosește-l responsabil și adaptează-l după nevoi.
+Personal project — use responsibly and adapt as needed.
