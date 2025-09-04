@@ -24,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -32,12 +33,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,6 +54,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -76,7 +81,10 @@ fun SleepyBabyScreen(
         initial = ro.pana.sleepybaby.engine.AutomationConfig()
     )
     val isEnabled by settingsRepository.isEnabled.collectAsState(initial = false)
+    val tutorialCompleted by settingsRepository.tutorialCompleted.collectAsState(initial = false)
     val serviceAvailable = service != null && hasAudioPermission
+
+    var showTutorial by rememberSaveable { mutableStateOf(false) }
 
     var isRecordingShush by remember { mutableStateOf(false) }
     var isPlayingShush by remember { mutableStateOf(false) }
@@ -85,6 +93,12 @@ fun SleepyBabyScreen(
     val hasCustomShush = automationConfig.trackId.startsWith("file://")
     var brightness by rememberSaveable {
         mutableFloatStateOf(initialBrightness.coerceIn(0.1f, 1f))
+    }
+
+    LaunchedEffect(tutorialCompleted) {
+        if (!tutorialCompleted) {
+            showTutorial = true
+        }
     }
 
     LaunchedEffect(initialBrightness) {
@@ -130,6 +144,27 @@ fun SleepyBabyScreen(
         is AutomationState.CryingPending -> MaterialTheme.colorScheme.secondary
         is AutomationState.Playing -> MaterialTheme.colorScheme.primaryContainer
         is AutomationState.FadingOut -> MaterialTheme.colorScheme.secondary
+    }
+
+    fun completeTutorial() {
+        showTutorial = false
+        scope.launch {
+            settingsRepository.setTutorialCompleted(true)
+        }
+    }
+
+    fun restartTutorial() {
+        showTutorial = true
+        scope.launch {
+            settingsRepository.setTutorialCompleted(false)
+        }
+    }
+
+    if (showTutorial) {
+        SleepyBabyTutorialDialog(
+            onSkip = { completeTutorial() },
+            onFinished = { completeTutorial() }
+        )
     }
 
     Scaffold(
@@ -525,7 +560,7 @@ fun SleepyBabyScreen(
                 )
             }
 
-            InfoCard()
+            InfoCard(onRestartTutorial = { restartTutorial() })
         }
     }
 }
@@ -692,7 +727,7 @@ private fun SliderSetting(
 }
 
 @Composable
-private fun InfoCard() {
+private fun InfoCard(onRestartTutorial: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
@@ -713,6 +748,136 @@ private fun InfoCard() {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            FilledTonalButton(onClick = onRestartTutorial) {
+                Text(text = stringResource(id = R.string.tutorial_restart_button))
+            }
+        }
+    }
+}
+
+private data class TutorialStep(val title: String, val description: String)
+
+@Composable
+private fun SleepyBabyTutorialDialog(
+    onSkip: () -> Unit,
+    onFinished: () -> Unit
+) {
+    val steps = listOf(
+        TutorialStep(
+            title = stringResource(id = R.string.tutorial_step_record_title),
+            description = stringResource(id = R.string.tutorial_step_record_body)
+        ),
+        TutorialStep(
+            title = stringResource(id = R.string.tutorial_step_permission_title),
+            description = stringResource(id = R.string.tutorial_step_permission_body)
+        ),
+        TutorialStep(
+            title = stringResource(id = R.string.tutorial_step_monitor_title),
+            description = stringResource(id = R.string.tutorial_step_monitor_body)
+        )
+    )
+
+    var stepIndex by rememberSaveable { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        stepIndex = 0
+    }
+
+    val currentStep = steps[stepIndex]
+    val progress = (stepIndex + 1f) / steps.size
+
+    Dialog(
+        onDismissRequest = {},
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            tonalElevation = 6.dp,
+            shadowElevation = 4.dp,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.tutorial_title),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    TextButton(onClick = onSkip) {
+                        Text(text = stringResource(id = R.string.tutorial_skip))
+                    }
+                }
+
+                Text(
+                    text = stringResource(
+                        id = R.string.tutorial_progress,
+                        stepIndex + 1,
+                        steps.size
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                LinearProgressIndicator(
+                    progress = progress,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = currentStep.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = currentStep.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (stepIndex > 0) {
+                        TextButton(onClick = { stepIndex-- }) {
+                            Text(text = stringResource(id = R.string.tutorial_back))
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+
+                    Button(
+                        onClick = {
+                            if (stepIndex == steps.lastIndex) {
+                                onFinished()
+                            } else {
+                                stepIndex++
+                            }
+                        }
+                    ) {
+                        Text(
+                            text = if (stepIndex == steps.lastIndex) {
+                                stringResource(id = R.string.tutorial_done)
+                            } else {
+                                stringResource(id = R.string.tutorial_next)
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }

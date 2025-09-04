@@ -108,6 +108,21 @@
     <string name="monitor_btn_start">Pornește</string>
     <string name="monitor_btn_stop">Oprește</string>
 
+    <!-- Tutorial -->
+    <string name="tutorial_title">Începe să folosești Sleepy Baby</string>
+    <string name="tutorial_progress">Pasul %1$d din %2$d</string>
+    <string name="tutorial_skip">Omite</string>
+    <string name="tutorial_back">Înapoi</string>
+    <string name="tutorial_next">Continuă</string>
+    <string name="tutorial_done">Gata</string>
+    <string name="tutorial_step_record_title">Înregistrează sunetul liniștitor</string>
+    <string name="tutorial_step_record_body">Înregistrează o șoaptă de 10 secunde aproape de microfon ca Sleepy Baby să redea propriul tău sunet calmant.</string>
+    <string name="tutorial_step_permission_title">Permite-i lui Sleepy Baby să asculte</string>
+    <string name="tutorial_step_permission_body">Acordă acces la microfon când ți se cere. Monitorizarea rămâne pe dispozitiv și nu părăsește telefonul.</string>
+    <string name="tutorial_step_monitor_title">Pornește monitorizarea cu încredere</string>
+    <string name="tutorial_step_monitor_body">După ce ai înregistrarea, activează monitorizarea și ajustează luminozitatea ca ecranul să rămână delicat noaptea.</string>
+    <string name="tutorial_restart_button">Repornește tutorialul</string>
+
     <!-- Brightness -->
     <string name="brightness_title">Luminozitate ecran</string>
     <string name="brightness_subtitle">Redu lumina pentru ca bebelușul să se odihnească.</string>

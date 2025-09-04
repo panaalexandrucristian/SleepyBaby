@@ -23,6 +23,7 @@ class SettingsRepository(private val context: Context) {
         private val TARGET_VOLUME = floatPreferencesKey("target_volume")
         private val TRACK_ID = stringPreferencesKey("track_id")
         private val ENABLED = booleanPreferencesKey("enabled")
+        private val TUTORIAL_COMPLETED = booleanPreferencesKey("tutorial_completed")
     }
 
     /**
@@ -44,6 +45,13 @@ class SettingsRepository(private val context: Context) {
      */
     val isEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[ENABLED] ?: false
+    }
+
+    /**
+     * Flow indicating whether the onboarding tutorial was completed
+     */
+    val tutorialCompleted: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[TUTORIAL_COMPLETED] ?: false
     }
 
     /**
@@ -98,6 +106,15 @@ class SettingsRepository(private val context: Context) {
     suspend fun updateEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Update the tutorial completion flag
+     */
+    suspend fun setTutorialCompleted(completed: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[TUTORIAL_COMPLETED] = completed
         }
     }
 
