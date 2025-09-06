@@ -7,13 +7,28 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
-import ro.pana.sleepybaby.audio.NoisePlayer
-import ro.pana.sleepybaby.core.ai.*
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import ro.pana.sleepybaby.audio.NoisePlayer
+import ro.pana.sleepybaby.core.ai.ClassificationResult
+import ro.pana.sleepybaby.core.ai.CryClassifier
+import ro.pana.sleepybaby.core.ai.EnergyCryClassifier
+import ro.pana.sleepybaby.core.ai.MelSpecExtractor
+import ro.pana.sleepybaby.core.ai.OnDeviceCryClassifier
 
 /**
  * Main cry detection automation engine that coordinates audio capture,
@@ -209,7 +224,8 @@ class CryDetectionEngine(
         return snapshot
     }
 
-    private suspend fun processClassification(classification: ClassificationResult.CryClass) {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    internal suspend fun processClassification(classification: ClassificationResult.CryClass) {
         val currentState = _state.value
 
         when (currentState) {

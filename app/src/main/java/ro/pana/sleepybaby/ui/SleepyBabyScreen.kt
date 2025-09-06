@@ -1,18 +1,16 @@
 package ro.pana.sleepybaby.ui
 
-import android.content.Intent
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -37,100 +35,42 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.content.ContextCompat
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import ro.pana.sleepybaby.R
-import ro.pana.sleepybaby.data.SettingsRepository
 import ro.pana.sleepybaby.engine.AutomationState
-import ro.pana.sleepybaby.service.SleepyBabyService
+import ro.pana.sleepybaby.ui.viewmodel.SleepyBabyUiState
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SleepyBabyScreen(
-    service: SleepyBabyService?,
-    settingsRepository: SettingsRepository,
-    hasAudioPermission: Boolean,
-    initialBrightness: Float,
-    onBrightnessChanged: (Float) -> Unit
+    state: SleepyBabyUiState,
+    onStartMonitoring: () -> Unit,
+    onStopMonitoring: () -> Unit,
+    onMonitoringToggle: (Boolean) -> Unit,
+    onCryThresholdChanged: (Int) -> Unit,
+    onSilenceThresholdChanged: (Int) -> Unit,
+    onTargetVolumeChanged: (Float) -> Unit,
+    onBrightnessChanged: (Float) -> Unit,
+    onRecordShush: () -> Unit,
+    onPreviewToggle: () -> Unit,
+    onTutorialSkip: () -> Unit,
+    onTutorialDone: () -> Unit,
+    onTutorialReplay: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-
-    val automationConfig by settingsRepository.automationConfig.collectAsState(
-        initial = ro.pana.sleepybaby.engine.AutomationConfig()
-    )
-    val isEnabled by settingsRepository.isEnabled.collectAsState(initial = false)
-    val tutorialCompleted by settingsRepository.tutorialCompleted.collectAsState(initial = false)
-    val serviceAvailable = service != null && hasAudioPermission
-
-    var showTutorial by rememberSaveable { mutableStateOf(false) }
-
-    var isRecordingShush by remember { mutableStateOf(false) }
-    var isPlayingShush by remember { mutableStateOf(false) }
-    var shushStatusMessage by remember { mutableStateOf<String?>(null) }
-    var shushCountdownSeconds by remember { mutableStateOf<Int?>(null) }
-    val hasCustomShush = automationConfig.trackId.startsWith("file://")
-    var brightness by rememberSaveable {
-        mutableFloatStateOf(initialBrightness.coerceIn(0.1f, 1f))
-    }
-
-    LaunchedEffect(tutorialCompleted) {
-        if (!tutorialCompleted) {
-            showTutorial = true
-        }
-    }
-
-    LaunchedEffect(initialBrightness) {
-        val coerced = initialBrightness.coerceIn(0.1f, 1f)
-        if (brightness != coerced) {
-            brightness = coerced
-        }
-    }
-
-    LaunchedEffect(automationConfig.trackId) {
-        isPlayingShush = false
-        shushCountdownSeconds = null
-    }
-
-    LaunchedEffect(isPlayingShush, service) {
-        if (isPlayingShush) {
-            while (true) {
-                delay(500)
-                val stillPlaying = service?.isShushPreviewPlaying() == true
-                if (!stillPlaying) {
-                    isPlayingShush = false
-                    shushStatusMessage = context.getString(R.string.shush_preview_finished)
-                    break
-                }
-            }
-        }
-    }
-
-    val engineState by (service?.getEngineState()?.collectAsState(initial = AutomationState.Stopped)
-        ?: remember { mutableStateOf(AutomationState.Stopped) })
-
-    val engineStatusLabel = when (engineState) {
+    val engineStatusLabel = when (state.engineState) {
         is AutomationState.Listening -> stringResource(id = R.string.state_listening)
         is AutomationState.CryingPending -> stringResource(id = R.string.state_pending)
         is AutomationState.Playing -> stringResource(id = R.string.state_playing)
@@ -138,7 +78,7 @@ fun SleepyBabyScreen(
         is AutomationState.Stopped -> stringResource(id = R.string.state_stopped)
     }
 
-    val engineStatusColor = when (engineState) {
+    val engineStatusColor = when (state.engineState) {
         is AutomationState.Stopped -> MaterialTheme.colorScheme.onSurfaceVariant
         is AutomationState.Listening -> MaterialTheme.colorScheme.primary
         is AutomationState.CryingPending -> MaterialTheme.colorScheme.secondary
@@ -146,24 +86,10 @@ fun SleepyBabyScreen(
         is AutomationState.FadingOut -> MaterialTheme.colorScheme.secondary
     }
 
-    fun completeTutorial() {
-        showTutorial = false
-        scope.launch {
-            settingsRepository.setTutorialCompleted(true)
-        }
-    }
-
-    fun restartTutorial() {
-        showTutorial = true
-        scope.launch {
-            settingsRepository.setTutorialCompleted(false)
-        }
-    }
-
-    if (showTutorial) {
+    if (state.tutorialVisible) {
         SleepyBabyTutorialDialog(
-            onSkip = { completeTutorial() },
-            onFinished = { completeTutorial() }
+            onSkip = onTutorialSkip,
+            onFinished = onTutorialDone
         )
     }
 
@@ -195,11 +121,11 @@ fun SleepyBabyScreen(
         ) {
             HeroBanner(
                 engineStatusLabel = engineStatusLabel,
-                serviceAvailable = serviceAvailable,
-                hasCustomShush = hasCustomShush
+                serviceAvailable = state.serviceConnected && state.hasAudioPermission,
+                hasCustomShush = state.hasCustomShush
             )
 
-            if (!hasAudioPermission) {
+            if (!state.hasAudioPermission) {
                 PermissionBanner(
                     title = stringResource(id = R.string.microphone_permission_required),
                     description = stringResource(id = R.string.microphone_permission_instructions)
@@ -208,7 +134,7 @@ fun SleepyBabyScreen(
 
             SectionCard(
                 title = stringResource(id = R.string.monitor_title),
-                subtitle = if (serviceAvailable) {
+                subtitle = if (state.serviceConnected && state.hasAudioPermission) {
                     stringResource(id = R.string.monitor_subtitle_on)
                 } else {
                     stringResource(id = R.string.monitor_subtitle_off)
@@ -218,7 +144,7 @@ fun SleepyBabyScreen(
                     StatusBadge(text = engineStatusLabel, color = engineStatusColor)
 
                     Text(
-                        text = if (hasCustomShush) {
+                        text = if (state.hasCustomShush) {
                             stringResource(id = R.string.monitor_helper)
                         } else {
                             stringResource(id = R.string.monitor_helper_requires_recording)
@@ -231,7 +157,7 @@ fun SleepyBabyScreen(
                         headlineContent = { Text(text = stringResource(id = R.string.monitor_toggle_title)) },
                         supportingContent = {
                             Text(
-                                text = if (hasAudioPermission) {
+                                text = if (state.hasAudioPermission) {
                                     stringResource(id = R.string.monitor_toggle_support_on)
                                 } else {
                                     stringResource(id = R.string.monitor_toggle_support_off)
@@ -240,39 +166,10 @@ fun SleepyBabyScreen(
                             )
                         },
                         trailingContent = {
-                        val toggleEnabled = hasAudioPermission && hasCustomShush
-                        Switch(
-                            checked = isEnabled && toggleEnabled,
-                            enabled = toggleEnabled,
-                            onCheckedChange = { enabled ->
-                                if (!toggleEnabled) {
-                                    val message = when {
-                                        !hasAudioPermission -> context.getString(R.string.monitor_toggle_support_off)
-                                        !hasCustomShush -> context.getString(R.string.monitor_needs_recording)
-                                        else -> null
-                                    }
-                                    message?.let {
-                                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-                                    }
-                                    return@Switch
-                                }
-                                scope.launch {
-                                    settingsRepository.updateEnabled(enabled)
-                                    if (enabled) {
-                                            val intent = Intent(context, SleepyBabyService::class.java).apply {
-                                                action = SleepyBabyService.ACTION_START_DETECTION
-                                            }
-                                            ContextCompat.startForegroundService(context, intent)
-                                            service?.startDetection()
-                                        } else {
-                                            val intent = Intent(context, SleepyBabyService::class.java).apply {
-                                                action = SleepyBabyService.ACTION_STOP_DETECTION
-                                            }
-                                            ContextCompat.startForegroundService(context, intent)
-                                            service?.stopDetection()
-                                        }
-                                    }
-                                }
+                            Switch(
+                                checked = state.isMonitoringEnabled && state.monitorControlsEnabled,
+                                enabled = state.monitorControlsEnabled,
+                                onCheckedChange = onMonitoringToggle
                             )
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
@@ -283,52 +180,22 @@ fun SleepyBabyScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Button(
-                            onClick = {
-                                scope.launch {
-                                    if (!hasAudioPermission || service == null || !hasCustomShush) {
-                                        Toast.makeText(
-                                            context,
-                                            when {
-                                                !hasAudioPermission -> context.getString(R.string.monitor_toggle_support_off)
-                                                !hasCustomShush -> context.getString(R.string.monitor_needs_recording)
-                                                else -> context.getString(R.string.microphone_permission_required)
-                                            },
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        return@launch
-                                    }
-                                    settingsRepository.updateEnabled(true)
-                                    val intent = Intent(context, SleepyBabyService::class.java).apply {
-                                        action = SleepyBabyService.ACTION_START_DETECTION
-                                    }
-                                    ContextCompat.startForegroundService(context, intent)
-                                    service.startDetection()
-                                }
-                            },
+                            onClick = onStartMonitoring,
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = serviceAvailable && hasCustomShush && (!isEnabled || engineState is AutomationState.Stopped)
+                            enabled = state.monitorControlsEnabled && (!state.isMonitoringEnabled || state.engineState is AutomationState.Stopped)
                         ) {
                             Text(text = stringResource(id = R.string.monitor_btn_start))
                         }
 
                         OutlinedButton(
-                            onClick = {
-                                scope.launch {
-                                    settingsRepository.updateEnabled(false)
-                                    val intent = Intent(context, SleepyBabyService::class.java).apply {
-                                        action = SleepyBabyService.ACTION_STOP_DETECTION
-                                    }
-                                    ContextCompat.startForegroundService(context, intent)
-                                    service?.stopDetection()
-                                }
-                            },
+                            onClick = onStopMonitoring,
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = serviceAvailable && isEnabled && engineState !is AutomationState.Stopped
+                            enabled = state.monitorControlsEnabled && state.isMonitoringEnabled && state.engineState !is AutomationState.Stopped
                         ) {
                             Text(text = stringResource(id = R.string.monitor_btn_stop))
                         }
+                    }
                 }
-            }
             }
 
             SectionCard(
@@ -337,93 +204,36 @@ fun SleepyBabyScreen(
             ) {
                 val brightnessLabel = stringResource(
                     id = R.string.brightness_value,
-                    (brightness * 100).roundToInt()
+                    (state.brightness * 100).roundToInt()
                 )
 
                 SliderSetting(
                     title = brightnessLabel,
-                    value = brightness,
+                    value = state.brightness,
                     valueRange = 0.1f..1f,
-                    steps = 0
-                ) { value ->
-                    val clamped = value.coerceIn(0.1f, 1f)
-                    if (brightness != clamped) {
-                        brightness = clamped
-                    }
-                    onBrightnessChanged(clamped)
-                }
+                    steps = 0,
+                    onValueChange = onBrightnessChanged
+                )
 
                 Text(
                     text = stringResource(id = R.string.brightness_helper),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             SectionCard(
                 title = stringResource(id = R.string.shush_recording_title),
-                subtitle = stringResource(id = R.string.detector_info)
+                subtitle = stringResource(id = R.string.shush_recording_description)
             ) {
-                Text(
-                    text = stringResource(id = R.string.shush_recording_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    FilledTonalButton(
-                        onClick = {
-                            scope.launch {
-                                val sleepyService = service
-                                if (sleepyService == null) {
-                                    shushStatusMessage = context.getString(R.string.shush_record_failure)
-                                    return@launch
-                                }
-
-                                val resumeAfter = serviceAvailable && isEnabled
-                                isRecordingShush = true
-                                isPlayingShush = false
-                                shushCountdownSeconds = 10
-                                shushStatusMessage = context.getString(R.string.shush_recording_in_progress)
-
-                                val countdownJob = launch {
-                                    for (second in 10 downTo 1) {
-                                        shushCountdownSeconds = second
-                                        delay(1000)
-                                    }
-                                    shushCountdownSeconds = null
-                                }
-
-                                val recordedUri = sleepyService.recordShushSample()
-                                countdownJob.cancel()
-                                shushCountdownSeconds = null
-                                isRecordingShush = false
-
-                                if (recordedUri != null) {
-                                    settingsRepository.updateTrackId(recordedUri)
-                                    sleepyService.updateConfig(automationConfig.copy(trackId = recordedUri))
-                                    shushStatusMessage = context.getString(R.string.shush_record_success)
-
-                                    if (resumeAfter && hasAudioPermission) {
-                                        val intent = Intent(context, SleepyBabyService::class.java).apply {
-                                            action = SleepyBabyService.ACTION_START_DETECTION
-                                        }
-                                        ContextCompat.startForegroundService(context, intent)
-                                        sleepyService.startDetection()
-                                    }
-                                } else {
-                                    shushStatusMessage = context.getString(R.string.shush_record_failure)
-                                }
-                            }
-                        },
-                        enabled = serviceAvailable && !isRecordingShush && !isPlayingShush,
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = onRecordShush,
+                        enabled = state.monitorControlsEnabled && !state.isRecordingShush && !state.isPlayingShushPreview,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = if (isRecordingShush) {
+                            text = if (state.isRecordingShush) {
                                 stringResource(id = R.string.shush_recording_in_progress)
                             } else {
                                 stringResource(id = R.string.shush_record_button)
@@ -431,41 +241,14 @@ fun SleepyBabyScreen(
                         )
                     }
 
-                    if (hasCustomShush) {
+                    if (state.hasCustomShush) {
                         OutlinedButton(
-                            onClick = {
-                                scope.launch {
-                                    val sleepyService = service
-                                    if (sleepyService == null) {
-                                        shushStatusMessage = context.getString(R.string.shush_preview_failed)
-                                        return@launch
-                                    }
-
-                                    if (isPlayingShush) {
-                                        sleepyService.stopShushPreview()
-                                        isPlayingShush = false
-                                        shushStatusMessage = context.getString(R.string.shush_preview_stopped)
-                                    } else {
-                                        val success = sleepyService.playShushPreview()
-                                        if (success) {
-                                            isPlayingShush = true
-                                            shushStatusMessage = context.getString(R.string.shush_preview_playing)
-                                        } else {
-                                            shushStatusMessage = context.getString(R.string.shush_preview_failed)
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.shush_preview_failed),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }
-                                }
-                            },
-                            enabled = serviceAvailable && !isRecordingShush,
+                            onClick = onPreviewToggle,
+                            enabled = state.monitorControlsEnabled && !state.isRecordingShush,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = if (isPlayingShush) {
+                                text = if (state.isPlayingShushPreview) {
                                     stringResource(id = R.string.shush_preview_button_stop)
                                 } else {
                                     stringResource(id = R.string.shush_preview_button_play)
@@ -473,38 +256,34 @@ fun SleepyBabyScreen(
                             )
                         }
                     }
-                }
 
-                if (shushCountdownSeconds != null) {
-                    StatusBadge(
-                        text = stringResource(
-                            id = R.string.shush_recording_countdown,
-                            shushCountdownSeconds!!
-                        ),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+                    if (state.shushCountdownSeconds != null) {
+                        StatusBadge(
+                            text = stringResource(
+                                id = R.string.shush_recording_countdown,
+                                state.shushCountdownSeconds
+                            ),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
-                if (hasCustomShush) {
                     Text(
-                        text = stringResource(id = R.string.shush_record_available),
+                        text = if (state.hasCustomShush) {
+                            stringResource(id = R.string.shush_record_available)
+                        } else {
+                            stringResource(id = R.string.shush_record_missing)
+                        },
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = if (state.hasCustomShush) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                } else {
-                    Text(
-                        text = stringResource(id = R.string.shush_record_missing),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
 
-                shushStatusMessage?.let { status ->
-                    Text(
-                        text = status,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    state.shushStatusMessage?.let { statusRes ->
+                        Text(
+                            text = stringResource(id = statusRes),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
@@ -513,54 +292,33 @@ fun SleepyBabyScreen(
                 subtitle = stringResource(id = R.string.params_subtitle)
             ) {
                 SliderSetting(
-                    title = stringResource(id = R.string.param_cry_threshold, automationConfig.cryThresholdSeconds),
-                    value = automationConfig.cryThresholdSeconds.toFloat(),
+                    title = stringResource(id = R.string.param_cry_threshold, state.automationConfig.cryThresholdSeconds),
+                    value = state.automationConfig.cryThresholdSeconds.toFloat(),
                     valueRange = 1f..10f,
                     steps = 8,
-                    onValueChange = { value ->
-                        val seconds = value.roundToInt()
-                        if (seconds != automationConfig.cryThresholdSeconds) {
-                            scope.launch {
-                                settingsRepository.updateCryThreshold(seconds)
-                                service?.updateConfig(automationConfig.copy(cryThresholdSeconds = seconds))
-                            }
-                        }
-                    }
+                    onValueChange = { value -> onCryThresholdChanged(value.roundToInt()) }
                 )
 
                 SliderSetting(
-                    title = stringResource(id = R.string.param_silence_threshold, automationConfig.silenceThresholdSeconds),
-                    value = automationConfig.silenceThresholdSeconds.toFloat(),
+                    title = stringResource(id = R.string.param_silence_threshold, state.automationConfig.silenceThresholdSeconds),
+                    value = state.automationConfig.silenceThresholdSeconds.toFloat(),
                     valueRange = 5f..30f,
                     steps = 24,
-                    onValueChange = { value ->
-                        val seconds = value.roundToInt()
-                        if (seconds != automationConfig.silenceThresholdSeconds) {
-                            scope.launch {
-                                settingsRepository.updateSilenceThreshold(seconds)
-                                service?.updateConfig(automationConfig.copy(silenceThresholdSeconds = seconds))
-                            }
-                        }
-                    }
+                    onValueChange = { value -> onSilenceThresholdChanged(value.roundToInt()) }
                 )
 
                 SliderSetting(
-                    title = stringResource(id = R.string.param_target_volume, (automationConfig.targetVolume * 100).toInt()),
-                    value = automationConfig.targetVolume,
+                    title = stringResource(id = R.string.param_target_volume, (state.automationConfig.targetVolume * 100).toInt()),
+                    value = state.automationConfig.targetVolume,
                     valueRange = 0.1f..1f,
                     steps = 0,
-                    onValueChange = { value ->
-                        if (value != automationConfig.targetVolume) {
-                            scope.launch {
-                                settingsRepository.updateTargetVolume(value)
-                                service?.updateConfig(automationConfig.copy(targetVolume = value))
-                            }
-                        }
-                    }
+                    onValueChange = onTargetVolumeChanged
                 )
             }
 
-            InfoCard(onRestartTutorial = { restartTutorial() })
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+
+            InfoCard(onRestartTutorial = onTutorialReplay)
         }
     }
 }
@@ -828,7 +586,7 @@ private fun SleepyBabyTutorialDialog(
                 )
 
                 LinearProgressIndicator(
-                    progress = progress,
+                    progress = { progress },
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.fillMaxWidth()
                 )

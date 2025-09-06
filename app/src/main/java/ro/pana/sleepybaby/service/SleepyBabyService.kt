@@ -6,6 +6,8 @@ import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.StateFlow
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.AudioAttributes
@@ -14,17 +16,16 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import ro.pana.sleepybaby.audio.ShushRecorder
+import ro.pana.sleepybaby.core.ai.OnDeviceCryClassifier
+import ro.pana.sleepybaby.domain.controller.SleepyBabyController
 import ro.pana.sleepybaby.engine.AutomationConfig
 import ro.pana.sleepybaby.engine.AutomationState
 import ro.pana.sleepybaby.engine.CryDetectionEngine
-import ro.pana.sleepybaby.core.ai.OnDeviceCryClassifier
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Foreground service that runs the cry detection engine
  */
-class SleepyBabyService : Service() {
+class SleepyBabyService : Service(), SleepyBabyController {
 
     private lateinit var cryDetectionEngine: CryDetectionEngine
     private lateinit var shushRecorder: ShushRecorder
@@ -192,22 +193,23 @@ class SleepyBabyService : Service() {
 
     // Public API for bound clients
 
-    fun getEngineState(): StateFlow<AutomationState> = cryDetectionEngine.state
+    override val engineState: StateFlow<AutomationState>
+        get() = cryDetectionEngine.state
 
-    fun startDetection() {
+    override fun startDetection() {
         ensureForeground()
         cryDetectionEngine.start()
     }
 
-    fun stopDetection() {
+    override fun stopDetection() {
         cryDetectionEngine.stop()
         exitForeground()
     }
 
-    suspend fun initializeClassifier(): OnDeviceCryClassifier.Backend =
+    override suspend fun initializeClassifier(): OnDeviceCryClassifier.Backend =
         cryDetectionEngine.loadOnDeviceClassifier()
 
-    suspend fun recordShushSample(): String? {
+    override suspend fun recordShushSample(): String? {
         stopShushPreview()
         cryDetectionEngine.stop()
         return shushRecorder.record()?.toString()
@@ -215,7 +217,7 @@ class SleepyBabyService : Service() {
 
     fun currentShushSample(): String? = shushRecorder.recordingUri()?.toString()
 
-    suspend fun playShushPreview(): Boolean = withContext(Dispatchers.Main) {
+    override suspend fun playShushPreview(): Boolean = withContext(Dispatchers.Main) {
         val uri = shushRecorder.recordingUri() ?: return@withContext false
 
         try {
@@ -243,7 +245,7 @@ class SleepyBabyService : Service() {
         }
     }
 
-    fun stopShushPreview() {
+    override fun stopShushPreview() {
         val player = shushPreviewPlayer ?: return
         player.removeListener(shushPreviewListener)
         try {
@@ -254,9 +256,9 @@ class SleepyBabyService : Service() {
         shushPreviewPlayer = null
     }
 
-    fun isShushPreviewPlaying(): Boolean = shushPreviewPlayer?.isPlaying == true
+    override fun isShushPreviewPlaying(): Boolean = shushPreviewPlayer?.isPlaying == true
 
-    fun updateConfig(config: AutomationConfig) {
+    override fun updateConfig(config: AutomationConfig) {
         cryDetectionEngine.updateConfig(config)
     }
 }

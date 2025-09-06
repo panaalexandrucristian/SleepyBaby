@@ -7,34 +7,43 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.widget.Toast
 import android.os.IBinder
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.lifecycleScope
 import ro.pana.sleepybaby.data.SettingsRepository
-import ro.pana.sleepybaby.core.ai.OnDeviceCryClassifier
+import ro.pana.sleepybaby.service.AndroidDetectionServiceLauncher
 import ro.pana.sleepybaby.service.SleepyBabyService
 import ro.pana.sleepybaby.ui.theme.SleepyBabyTheme
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import ro.pana.sleepybaby.ui.viewmodel.SleepyBabyEffect
+import ro.pana.sleepybaby.ui.viewmodel.SleepyBabyViewModel
+import ro.pana.sleepybaby.ui.viewmodel.SleepyBabyViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
-    private var sleepyBabyService: SleepyBabyService? by mutableStateOf(null)
+    private val settingsRepository: SettingsRepository by lazy { SettingsRepository(this) }
+    private val detectionServiceLauncher by lazy { AndroidDetectionServiceLauncher(this) }
+    private val viewModel: SleepyBabyViewModel by viewModels {
+        SleepyBabyViewModelFactory(application, settingsRepository, detectionServiceLauncher)
+    }
+
+    private var sleepyBabyService: SleepyBabyService? = null
     private var bound = false
-    private lateinit var settingsRepository: SettingsRepository
-    private var hasAudioPermission by mutableStateOf(false)
+    private var hasAudioPermission = false
     private var screenBrightness = 1f
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -47,10 +56,8 @@ class MainActivity : ComponentActivity() {
                 getString(ro.pana.sleepybaby.R.string.microphone_permission_required),
                 Toast.LENGTH_LONG
             ).show()
-            lifecycleScope.launch {
-                settingsRepository.updateEnabled(false)
-            }
         }
+        viewModel.onAudioPermissionChanged(isGranted)
     }
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
@@ -62,33 +69,13 @@ class MainActivity : ComponentActivity() {
             val binder = service as SleepyBabyService.SleepyBabyBinder
             sleepyBabyService = binder.getService()
             bound = true
-            lifecycleScope.launch {
-                val config = settingsRepository.automationConfig.first()
-                sleepyBabyService?.updateConfig(config)
-
-                when (sleepyBabyService?.initializeClassifier()) {
-                    OnDeviceCryClassifier.Backend.UNINITIALIZED, null -> {
-                        Toast.makeText(
-                            this@MainActivity,
-                            getString(ro.pana.sleepybaby.R.string.detector_unavailable),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                    else -> Unit
-                }
-
-                val shouldEnable = settingsRepository.isEnabled.first()
-                if (hasAudioPermission && shouldEnable) {
-                    sleepyBabyService?.startDetection()
-                } else {
-                    sleepyBabyService?.stopDetection()
-                }
-            }
+            sleepyBabyService?.let { viewModel.onControllerConnected(it) }
         }
 
         override fun onServiceDisconnected(arg0: ComponentName) {
             bound = false
             sleepyBabyService = null
+            viewModel.onControllerDisconnected()
         }
     }
 
@@ -100,27 +87,51 @@ class MainActivity : ComponentActivity() {
 
         screenBrightness = currentWindowBrightness()
         setWindowBrightness(screenBrightness)
-
-        settingsRepository = SettingsRepository(this)
-
         checkAudioPermission()
         checkNotificationPermission()
 
+        viewModel.setInitialBrightness(screenBrightness)
+        viewModel.onAudioPermissionChanged(hasAudioPermission)
+
         setContent {
             SleepyBabyTheme {
+                val uiState by viewModel.uiState.collectAsState()
+                val context = LocalContext.current
+
+                LaunchedEffect(uiState.brightness) {
+                    screenBrightness = uiState.brightness
+                    setWindowBrightness(screenBrightness)
+                }
+
+                LaunchedEffect(Unit) {
+                    viewModel.effects.collect { effect ->
+                        when (effect) {
+                            is SleepyBabyEffect.Toast ->
+                                Toast.makeText(context, context.getString(effect.messageRes), Toast.LENGTH_SHORT).show()
+                            is SleepyBabyEffect.ToastText ->
+                                Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     SleepyBabyScreen(
-                        service = sleepyBabyService,
-                        settingsRepository = settingsRepository,
-                        hasAudioPermission = hasAudioPermission,
-                        initialBrightness = screenBrightness,
-                        onBrightnessChanged = { value ->
-                            screenBrightness = value
-                            setWindowBrightness(screenBrightness)
-                        }
+                        state = uiState,
+                        onStartMonitoring = { viewModel.onStartMonitoringRequested() },
+                        onStopMonitoring = { viewModel.onStopMonitoringRequested() },
+                        onMonitoringToggle = viewModel::onMonitoringToggleChanged,
+                        onCryThresholdChanged = viewModel::onCryThresholdChanged,
+                        onSilenceThresholdChanged = viewModel::onSilenceThresholdChanged,
+                        onTargetVolumeChanged = viewModel::onTargetVolumeChanged,
+                        onBrightnessChanged = viewModel::onBrightnessChanged,
+                        onRecordShush = viewModel::onRecordShushRequested,
+                        onPreviewToggle = viewModel::onPreviewToggleRequested,
+                        onTutorialSkip = viewModel::onTutorialSkipped,
+                        onTutorialDone = viewModel::onTutorialFinished,
+                        onTutorialReplay = viewModel::onTutorialReplayRequested
                     )
                 }
             }
@@ -140,6 +151,7 @@ class MainActivity : ComponentActivity() {
             unbindService(serviceConnection)
             bound = false
             sleepyBabyService = null
+            viewModel.onControllerDisconnected()
         }
     }
 
@@ -159,6 +171,7 @@ class MainActivity : ComponentActivity() {
             ) == PackageManager.PERMISSION_GRANTED -> {
                 // Permission already granted
                 hasAudioPermission = true
+                viewModel.onAudioPermissionChanged(true)
             }
             else -> {
                 requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
