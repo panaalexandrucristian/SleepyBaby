@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "ro.pana.sleepybaby"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ro.pana.sleepybaby"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
