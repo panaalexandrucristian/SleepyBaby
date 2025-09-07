@@ -109,8 +109,6 @@ class SleepyBabyService : Service(), SleepyBabyController {
     }
 
     private fun ensureForeground() {
-        if (inForeground) return
-
         val notification = createNotification(AutomationState.Listening)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

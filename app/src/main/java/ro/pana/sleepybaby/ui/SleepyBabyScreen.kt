@@ -1,5 +1,9 @@
 package ro.pana.sleepybaby.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -78,13 +82,14 @@ fun SleepyBabyScreen(
         is AutomationState.Stopped -> stringResource(id = R.string.state_stopped)
     }
 
-    val engineStatusColor = when (state.engineState) {
+    val targetEngineStatusColor = when (state.engineState) {
         is AutomationState.Stopped -> MaterialTheme.colorScheme.onSurfaceVariant
         is AutomationState.Listening -> MaterialTheme.colorScheme.primary
         is AutomationState.CryingPending -> MaterialTheme.colorScheme.secondary
         is AutomationState.Playing -> MaterialTheme.colorScheme.primaryContainer
         is AutomationState.FadingOut -> MaterialTheme.colorScheme.secondary
     }
+    val engineStatusColor by animateColorAsState(targetValue = targetEngineStatusColor, label = "engineStatusColor")
 
     if (state.tutorialVisible) {
         SleepyBabyTutorialDialog(
@@ -125,7 +130,7 @@ fun SleepyBabyScreen(
                 hasCustomShush = state.hasCustomShush
             )
 
-            if (!state.hasAudioPermission) {
+            AnimatedVisibility(visible = !state.hasAudioPermission) {
                 PermissionBanner(
                     title = stringResource(id = R.string.microphone_permission_required),
                     description = stringResource(id = R.string.microphone_permission_instructions)
@@ -241,7 +246,7 @@ fun SleepyBabyScreen(
                         )
                     }
 
-                    if (state.hasCustomShush) {
+                    AnimatedVisibility(visible = state.hasCustomShush) {
                         OutlinedButton(
                             onClick = onPreviewToggle,
                             enabled = state.monitorControlsEnabled && !state.isRecordingShush,
@@ -257,11 +262,11 @@ fun SleepyBabyScreen(
                         }
                     }
 
-                    if (state.shushCountdownSeconds != null) {
+                    AnimatedVisibility(visible = state.shushCountdownSeconds != null) {
                         StatusBadge(
                             text = stringResource(
                                 id = R.string.shush_recording_countdown,
-                                state.shushCountdownSeconds
+                                state.shushCountdownSeconds ?: 0
                             ),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -277,12 +282,14 @@ fun SleepyBabyScreen(
                         color = if (state.hasCustomShush) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    state.shushStatusMessage?.let { statusRes ->
-                        Text(
-                            text = stringResource(id = statusRes),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    AnimatedVisibility(visible = state.shushStatusMessage != null) {
+                        state.shushStatusMessage?.let { statusRes ->
+                            Text(
+                                text = stringResource(id = statusRes),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -351,26 +358,32 @@ private fun HeroBanner(
                     text = engineStatusLabel,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Text(
-                    text = if (serviceAvailable) stringResource(id = R.string.hero_status_on) else stringResource(id = R.string.hero_status_off),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = if (serviceAvailable) stringResource(id = R.string.hero_desc_on) else stringResource(id = R.string.hero_desc_off),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Crossfade(targetState = serviceAvailable, label = "heroStatus") { available ->
+                    Text(
+                        text = if (available) stringResource(id = R.string.hero_status_on) else stringResource(id = R.string.hero_status_off),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Crossfade(targetState = serviceAvailable, label = "heroDesc") { available ->
+                    Text(
+                        text = if (available) stringResource(id = R.string.hero_desc_on) else stringResource(id = R.string.hero_desc_off),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     HeroInfoRow(
                         painter = painterResource(id = R.drawable.ic_live_monitor),
                         text = stringResource(id = R.string.hero_info_1)
                     )
-                    HeroInfoRow(
-                        painter = painterResource(id = R.drawable.ic_shush),
-                        text = if (hasCustomShush) stringResource(id = R.string.hero_info_2_has_custom) else stringResource(id = R.string.hero_info_2_no_custom)
-                    )
+                    Crossfade(targetState = hasCustomShush, label = "heroCustomInfo") { custom ->
+                        HeroInfoRow(
+                            painter = painterResource(id = R.drawable.ic_shush),
+                            text = if (custom) stringResource(id = R.string.hero_info_2_has_custom) else stringResource(id = R.string.hero_info_2_no_custom)
+                        )
+                    }
                 }
             }
 
@@ -424,7 +437,9 @@ private fun SectionCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 4.dp,
