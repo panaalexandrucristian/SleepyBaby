@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import android.os.Looper
 import kotlinx.coroutines.*
 import android.media.AudioAttributes
 import java.io.File
@@ -19,6 +20,10 @@ class NoisePlayer(private val context: Context) {
 
     private var exoPlayer: ExoPlayer? = null
     private var fadeJob: Job? = null
+    private var loopCompletionDeferred: CompletableDeferred<Unit>? = null
+    private var desiredLoopCount: Int = 0
+    private var completedLoopCount: Int = 0
+    private var playerListener: Player.Listener? = null
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private var currentVolume = 0f
@@ -32,12 +37,46 @@ class NoisePlayer(private val context: Context) {
         setupPlayer()
     }
 
+    private fun handlePlaybackEnded() {
+        val targetLoops = desiredLoopCount
+        if (targetLoops <= 0) {
+            return
+        }
+        completedLoopCount++
+        Log.d("NoisePlayer", "Completed loop $completedLoopCount/$targetLoops")
+        val player = exoPlayer ?: return
+        if (completedLoopCount < targetLoops) {
+            player.seekTo(0)
+            player.play()
+        } else {
+            loopCompletionDeferred?.takeIf { !it.isCompleted }?.complete(Unit)
+            resetLoopTracking()
+        }
+    }
+
+    private fun resetLoopTracking() {
+        loopCompletionDeferred?.takeIf { !it.isCompleted }?.cancel()
+        desiredLoopCount = 0
+        completedLoopCount = 0
+        loopCompletionDeferred = null
+    }
+
     private fun setupPlayer() {
         exoPlayer = ExoPlayer.Builder(context).build().apply {
-            repeatMode = Player.REPEAT_MODE_ONE
+            repeatMode = Player.REPEAT_MODE_OFF
             volume = 0f
             setAudioAttributes(audioAttributes, true)
             setHandleAudioBecomingNoisy(true)
+        }.also { player ->
+            val listener = object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_ENDED) {
+                        handlePlaybackEnded()
+                    }
+                }
+            }
+            playerListener = listener
+            player.addListener(listener)
         }
     }
 
@@ -52,6 +91,7 @@ class NoisePlayer(private val context: Context) {
         targetVolume: Float = 1f,
         fadeInMs: Long = 0L
     ) = withContext(Dispatchers.Main) {
+        resetLoopTracking()
         val player = exoPlayer ?: return@withContext
 
         try {
@@ -67,6 +107,7 @@ class NoisePlayer(private val context: Context) {
 
             val mediaItem = MediaItem.fromUri(uri)
             player.setMediaItem(mediaItem)
+            player.repeatMode = Player.REPEAT_MODE_OFF
             player.prepare()
             player.play()
 
@@ -80,6 +121,62 @@ class NoisePlayer(private val context: Context) {
             Log.d("NoisePlayer", "Started playing: $trackUri")
         } catch (e: Exception) {
             Log.e("NoisePlayer", "Failed to play track: $trackUri", e)
+        }
+    }
+
+    /**
+     * Play a track a fixed number of times.
+     */
+    suspend fun playLoops(
+        trackUri: String,
+        loopCount: Int,
+        targetVolume: Float = 1f,
+        fadeInMs: Long = 0L
+    ) = withContext(Dispatchers.Main) {
+        val player = exoPlayer ?: return@withContext
+
+        if (loopCount <= 0) {
+            Log.w("NoisePlayer", "Requested loop count $loopCount; nothing to play")
+            return@withContext
+        }
+
+        resetLoopTracking()
+        desiredLoopCount = loopCount
+        loopCompletionDeferred = CompletableDeferred()
+
+        try {
+            this@NoisePlayer.targetVolume = targetVolume.coerceIn(0f, 1f)
+
+            if (trackUri.startsWith("asset:///")) {
+                ensureAssetExists(trackUri.removePrefix("asset:///"))
+            } else if (trackUri.startsWith("file://")) {
+                ensureFileExists(Uri.parse(trackUri))
+            }
+            val uri = Uri.parse(trackUri)
+
+            val mediaItem = MediaItem.fromUri(uri)
+            player.setMediaItem(mediaItem)
+            player.repeatMode = Player.REPEAT_MODE_OFF
+            player.prepare()
+            player.play()
+
+            if (fadeInMs > 0) {
+                fadeIn(fadeInMs)
+            } else {
+                player.volume = this@NoisePlayer.targetVolume
+                currentVolume = this@NoisePlayer.targetVolume
+            }
+
+            Log.d(
+                "NoisePlayer",
+                "Started looped playback ($loopCount loops): $trackUri"
+            )
+
+            loopCompletionDeferred?.await()
+        } catch (e: Exception) {
+            loopCompletionDeferred?.cancel()
+            resetLoopTracking()
+            Log.e("NoisePlayer", "Failed to play loops for track: $trackUri", e)
         }
     }
 
@@ -159,25 +256,33 @@ class NoisePlayer(private val context: Context) {
      */
     fun stop() {
         fadeJob?.cancel()
-        exoPlayer?.stop()
-        currentVolume = 0f
-        Log.d("NoisePlayer", "Playback stopped")
+        runOnPlayerThread {
+            loopCompletionDeferred?.takeIf { !it.isCompleted }?.complete(Unit)
+            resetLoopTracking()
+            exoPlayer?.stop()
+            currentVolume = 0f
+            Log.d("NoisePlayer", "Playback stopped")
+        }
     }
 
     /**
      * Pause playback
      */
     fun pause() {
-        exoPlayer?.pause()
-        Log.d("NoisePlayer", "Playback paused")
+        runOnPlayerThread {
+            exoPlayer?.pause()
+            Log.d("NoisePlayer", "Playback paused")
+        }
     }
 
     /**
      * Resume playback
      */
     fun resume() {
-        exoPlayer?.play()
-        Log.d("NoisePlayer", "Playback resumed")
+        runOnPlayerThread {
+            exoPlayer?.play()
+            Log.d("NoisePlayer", "Playback resumed")
+        }
     }
 
     /**
@@ -207,9 +312,30 @@ class NoisePlayer(private val context: Context) {
      */
     fun release() {
         fadeJob?.cancel()
-        exoPlayer?.release()
-        exoPlayer = null
+        val releaseJob = runOnPlayerThread {
+            loopCompletionDeferred?.takeIf { !it.isCompleted }?.complete(Unit)
+            resetLoopTracking()
+            exoPlayer?.let { player ->
+                playerListener?.let { player.removeListener(it) }
+            }
+            exoPlayer?.release()
+            exoPlayer = null
+            Log.d("NoisePlayer", "Resources released")
+        }
+        if (releaseJob != null) {
+            runBlocking { releaseJob.join() }
+        }
         coroutineScope.cancel()
-        Log.d("NoisePlayer", "Resources released")
+    }
+
+    private fun runOnPlayerThread(block: () -> Unit): Job? {
+        return if (Looper.myLooper() == Looper.getMainLooper()) {
+            block()
+            null
+        } else {
+            coroutineScope.launch {
+                block()
+            }
+        }
     }
 }

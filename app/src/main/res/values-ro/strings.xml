@@ -160,4 +160,10 @@
     <string name="notif_fading">Se estompează…</string>
     <string name="notif_stopped">Serviciu oprit</string>
     <string name="notif_action_stop">Oprește</string>
+
+    <!-- App shortcuts -->
+    <string name="shortcut_monitor_short">Start rapid</string>
+    <string name="shortcut_monitor_long">Pornește monitorizarea</string>
+    <string name="shortcut_monitor_missing_custom">Înregistrează un sunet liniștitor înainte de a folosi shortcutul.</string>
+    <string name="shortcut_monitor_missing_permission">Acordă permisiunea pentru microfon pentru a folosi shortcutul.</string>
 </resources>

@@ -22,7 +22,6 @@ import ro.pana.sleepybaby.domain.usecase.ShushUseCases
 import ro.pana.sleepybaby.domain.usecase.TutorialUseCases
 import ro.pana.sleepybaby.engine.AutomationConfig
 import ro.pana.sleepybaby.engine.AutomationState
-import ro.pana.sleepybaby.core.ai.OnDeviceCryClassifier
 
 data class SleepyBabyUiState(
     val automationConfig: AutomationConfig = AutomationConfig(),
@@ -31,6 +30,7 @@ data class SleepyBabyUiState(
     val hasAudioPermission: Boolean = false,
     val serviceConnected: Boolean = false,
     val hasCustomShush: Boolean = false,
+    val configLoaded: Boolean = false,
     val isRecordingShush: Boolean = false,
     val isPlayingShushPreview: Boolean = false,
     val shushCountdownSeconds: Int? = null,
@@ -45,6 +45,7 @@ data class SleepyBabyUiState(
 sealed class SleepyBabyEffect {
     data class Toast(@StringRes val messageRes: Int) : SleepyBabyEffect()
     data class ToastText(val message: String) : SleepyBabyEffect()
+    data class ShortcutAvailability(val enabled: Boolean) : SleepyBabyEffect()
 }
 
 class SleepyBabyViewModel(
@@ -64,6 +65,9 @@ class SleepyBabyViewModel(
     private var controller: SleepyBabyController? = null
     private var engineStateJob: Job? = null
     private var previewMonitorJob: Job? = null
+    private var pendingShortcutStart = false
+    private var pendingShortcutCustomToast = false
+    private var pendingRecordRequest = false
 
     init {
         observeConfigUpdates()
@@ -75,9 +79,13 @@ class SleepyBabyViewModel(
         _uiState.update { it.copy(hasAudioPermission = granted) }
         if (!granted) {
             onStopMonitoringRequested()
+            pendingShortcutStart = false
+            pendingRecordRequest = false
             viewModelScope.launch { monitoringUseCases.setEnabled(false) }
         } else {
             maybeResumeMonitoring()
+            tryFulfillShortcutRequest()
+            tryStartPendingRecord()
         }
     }
 
@@ -101,19 +109,14 @@ class SleepyBabyViewModel(
             }
         }
 
-        viewModelScope.launch {
-            when (monitoringUseCases.initializeDetector(controller)) {
-                OnDeviceCryClassifier.Backend.UNINITIALIZED ->
-                    effectsChannel.send(SleepyBabyEffect.Toast(R.string.detector_unavailable))
-                else -> Unit
-            }
-        }
-
         maybeResumeMonitoring()
+        tryFulfillShortcutRequest()
+        tryStartPendingRecord()
     }
 
     fun onControllerDisconnected() {
         controller = null
+        pendingRecordRequest = false
         engineStateJob?.cancel()
         engineStateJob = null
         previewMonitorJob?.cancel()
@@ -125,6 +128,30 @@ class SleepyBabyViewModel(
                 isPlayingShushPreview = false
             )
         }
+    }
+
+    fun onShortcutStartRequested() {
+        val state = _uiState.value
+        if (!state.hasCustomShush) {
+            if (state.configLoaded) {
+                viewModelScope.launch {
+                    effectsChannel.send(SleepyBabyEffect.Toast(R.string.shortcut_monitor_missing_custom))
+                }
+                pendingShortcutCustomToast = false
+            } else {
+                pendingShortcutCustomToast = true
+            }
+        } else {
+            pendingShortcutCustomToast = false
+        }
+        if (!state.hasAudioPermission) {
+            viewModelScope.launch {
+                effectsChannel.send(SleepyBabyEffect.Toast(R.string.shortcut_monitor_missing_permission))
+            }
+        }
+
+        pendingShortcutStart = true
+        tryFulfillShortcutRequest()
     }
 
     fun onStartMonitoringRequested(persist: Boolean = true) {
@@ -179,11 +206,15 @@ class SleepyBabyViewModel(
     }
 
     fun onRecordShushRequested() {
-        val controller = controller ?: run {
-            effectsChannel.trySend(SleepyBabyEffect.Toast(R.string.shush_record_failure))
-            return
-        }
         if (_uiState.value.isRecordingShush) return
+        pendingRecordRequest = true
+        tryStartPendingRecord()
+    }
+
+    private fun tryStartPendingRecord() {
+        if (!pendingRecordRequest) return
+        val activeController = controller ?: return
+        pendingRecordRequest = false
 
         val resumeAfter = _uiState.value.isMonitoringEnabled && _uiState.value.monitorControlsEnabled
 
@@ -198,7 +229,7 @@ class SleepyBabyViewModel(
                 _uiState.update { it.copy(shushCountdownSeconds = null) }
             }
 
-            val recordedUri = shushUseCases.record(controller)
+            val recordedUri = shushUseCases.record(activeController)
             countdownJob.cancel()
             _uiState.update { it.copy(isRecordingShush = false, shushCountdownSeconds = null) }
 
@@ -207,7 +238,7 @@ class SleepyBabyViewModel(
                 _uiState.update { it.copy(shushStatusMessage = R.string.shush_record_success) }
 
                 if (resumeAfter) {
-                    monitoringUseCases.start(controller)
+                    monitoringUseCases.start(activeController)
                     monitoringUseCases.setEnabled(true)
                 }
                 maybeResumeMonitoring()
@@ -261,14 +292,31 @@ class SleepyBabyViewModel(
     private fun observeConfigUpdates() {
         viewModelScope.launch {
             configUseCases.observeConfig().collect { config ->
+                val previousState = _uiState.value
+                val hasCustomShush = config.trackId.startsWith("file://")
                 controller?.updateConfig(config)
                 _uiState.update {
                     it.copy(
                         automationConfig = config,
-                        hasCustomShush = config.trackId.startsWith("file://")
+                        hasCustomShush = hasCustomShush,
+                        configLoaded = true
                     )
                 }
+                if (!previousState.configLoaded || previousState.hasCustomShush != hasCustomShush) {
+                    viewModelScope.launch {
+                        effectsChannel.send(SleepyBabyEffect.ShortcutAvailability(hasCustomShush))
+                    }
+                }
+                if (pendingShortcutCustomToast) {
+                    pendingShortcutCustomToast = false
+                    if (!hasCustomShush) {
+                        viewModelScope.launch {
+                            effectsChannel.send(SleepyBabyEffect.Toast(R.string.shortcut_monitor_missing_custom))
+                        }
+                    }
+                }
                 maybeResumeMonitoring()
+                tryFulfillShortcutRequest()
             }
         }
     }
@@ -313,5 +361,15 @@ class SleepyBabyViewModel(
                 monitoringUseCases.start(controller)
             }
         }
+    }
+
+    private fun tryFulfillShortcutRequest() {
+        if (!pendingShortcutStart) return
+        if (controller == null) return
+        val state = _uiState.value
+        val controlsReady = state.monitorControlsEnabled && !state.isMonitoringEnabled
+        if (!controlsReady) return
+        pendingShortcutStart = false
+        onStartMonitoringRequested()
     }
 }

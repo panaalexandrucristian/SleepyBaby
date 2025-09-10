@@ -159,4 +159,10 @@
     <string name="notif_fading">Fading out...</string>
     <string name="notif_stopped">Service stopped</string>
     <string name="notif_action_stop">Stop</string>
+
+    <!-- App shortcuts -->
+    <string name="shortcut_monitor_short">Quick Start</string>
+    <string name="shortcut_monitor_long">Start monitoring</string>
+    <string name="shortcut_monitor_missing_custom">Record a soothing shush before using the shortcut.</string>
+    <string name="shortcut_monitor_missing_permission">Allow microphone access to use the shortcut.</string>
 </resources>

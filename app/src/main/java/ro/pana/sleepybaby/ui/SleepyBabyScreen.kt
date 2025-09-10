@@ -234,7 +234,7 @@ fun SleepyBabyScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
                         onClick = onRecordShush,
-                        enabled = state.monitorControlsEnabled && !state.isRecordingShush && !state.isPlayingShushPreview,
+                        enabled = state.hasAudioPermission && !state.isRecordingShush && !state.isPlayingShushPreview,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(

@@ -10,6 +10,7 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -18,6 +19,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -38,16 +40,20 @@ class CryDetectionEngineTest {
         fadeOutMs = 200,
         targetVolume = 0.5f,
         trackId = "file:///sample.mp3",
-        samplePeriodMs = 10
+        samplePeriodMs = 1000
     )
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         mockkStatic(Log::class)
-        every { Log.d(any(), any()) } returns 0
-        every { Log.e(any(), any(), any()) } returns 0
-        every { Log.i(any(), any()) } returns 0
+        every { Log.d(any<String>(), any<String>()) } returns 0
+        every { Log.e(any<String>(), any<String>()) } returns 0
+        every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
+        every { Log.i(any<String>(), any<String>()) } returns 0
+        every { Log.v(any<String>(), any<String>()) } returns 0
+        every { Log.w(any<String>(), any<String>()) } returns 0
+        every { Log.w(any<String>(), any<Throwable>()) } returns 0
         engine = CryDetectionEngine(context)
         engine.setConfigForTest(config)
         engine.setNoisePlayerForTest(noisePlayer)
@@ -56,57 +62,68 @@ class CryDetectionEngineTest {
 
     @After
     fun tearDown() {
+        engine.stop()
         unmockkStatic(Log::class)
         Dispatchers.resetMain()
     }
 
     @Test
-    fun `when cry threshold reached playback starts`() = runTest {
-        coEvery { noisePlayer.play(any(), any(), any()) } returns Unit
-
-        engine.processClassification(ClassificationResult.CryClass.BABY_CRY)
-
-        assertTrue(engine.state.value is AutomationState.CryingPending)
-
-        engine.processClassification(ClassificationResult.CryClass.BABY_CRY)
-        advanceUntilIdle()
-
-        assertTrue(engine.state.value is AutomationState.Playing)
-        coVerify(exactly = 1) {
-            noisePlayer.play(config.trackId, config.targetVolume, config.fadeInMs)
-        }
-    }
-
-    @Test
-    fun `when silence threshold reached playback fades out`() = runTest {
-        coEvery { noisePlayer.play(any(), any(), any()) } returns Unit
-        every { noisePlayer.fadeOut(any()) } returns Unit
+    fun `sound detection triggers shush playback loops`() = runTest {
+        coEvery { noisePlayer.playLoops(any(), any(), any(), any()) } returns Unit
         every { noisePlayer.stop() } returns Unit
 
-        engine.processClassification(ClassificationResult.CryClass.BABY_CRY)
-        engine.processClassification(ClassificationResult.CryClass.BABY_CRY)
+        engine.processClassification(soundResult())
         advanceUntilIdle()
+        verify { Log.d(eq("CryDetectionEngine"), match { it.contains("Sound confirmation") }) }
+        assertEquals(0, engine.getSoundSamplesForTest())
+        assertTrue(engine.hasPlaybackJobForTest())
+        engine.awaitPlaybackJobForTest()
 
-        repeat(config.silenceThresholdSeconds) {
-            engine.processClassification(ClassificationResult.CryClass.SILENCE)
-        }
-
-        advanceUntilIdle()
-
-        verify(exactly = 1) { noisePlayer.fadeOut(config.fadeOutMs) }
-        verify(exactly = 1) { noisePlayer.stop() }
         assertTrue(engine.state.value is AutomationState.Listening)
+        assertEquals(1, engine.getCooldownForTest())
+        verify(exactly = 1) { noisePlayer.stop() }
     }
 
     @Test
-    fun `non cry classification resets pending state`() = runTest {
-        engine.processClassification(ClassificationResult.CryClass.BABY_CRY)
-        assertTrue(engine.state.value is AutomationState.CryingPending)
+    fun `cooldown prevents immediate retrigger`() = runTest {
+        coEvery { noisePlayer.playLoops(any(), any(), any(), any()) } returns Unit
+        every { noisePlayer.stop() } returns Unit
 
-        engine.processClassification(ClassificationResult.CryClass.SILENCE)
+        engine.processClassification(soundResult())
         advanceUntilIdle()
+        engine.awaitPlaybackJobForTest()
 
-        assertTrue(engine.state.value is AutomationState.Listening)
+        assertEquals(1, engine.getCooldownForTest())
+
+        // First sample after playback only decrements cooldown
+        engine.processClassification(soundResult())
+        advanceUntilIdle()
+        assertEquals(0, engine.getCooldownForTest())
+
+        // Second silence sample (after cooldown elapsed) should trigger again
+        engine.processClassification(soundResult())
+        advanceUntilIdle()
+        engine.awaitPlaybackJobForTest()
+
+        assertEquals(1, engine.getCooldownForTest())
+    }
+
+    @Test
+    fun `silence input does not trigger playback`() = runTest {
+        coEvery { noisePlayer.playLoops(any(), any(), any(), any()) } returns Unit
+        every { noisePlayer.stop() } returns Unit
+
+        engine.processClassification(silenceResult())
+        advanceUntilIdle()
+        advanceUntilIdle()
+        assertEquals(0, engine.getCooldownForTest())
+
+        engine.processClassification(soundResult())
+        advanceUntilIdle()
+        engine.awaitPlaybackJobForTest()
+
+        // Cooldown should only start after the actual sound-triggered playback
+        assertEquals(1, engine.getCooldownForTest())
     }
 }
 
@@ -116,6 +133,20 @@ private fun CryDetectionEngine.setStateForTest(state: AutomationState) {
     val flow = field.get(this) as MutableStateFlow<AutomationState>
     flow.value = state
 }
+
+private fun soundResult() = ClassificationResult(
+    silenceProb = 0.1f,
+    noiseProb = 0.8f,
+    cryProb = 0.1f,
+    predictedClass = ClassificationResult.CryClass.NOISE
+)
+
+private fun silenceResult() = ClassificationResult(
+    silenceProb = 0.9f,
+    noiseProb = 0.05f,
+    cryProb = 0.05f,
+    predictedClass = ClassificationResult.CryClass.SILENCE
+)
 
 private fun CryDetectionEngine.setConfigForTest(config: AutomationConfig) {
     val field = CryDetectionEngine::class.java.getDeclaredField("currentConfig")
@@ -127,4 +158,29 @@ private fun CryDetectionEngine.setNoisePlayerForTest(player: NoisePlayer) {
     val field = CryDetectionEngine::class.java.getDeclaredField("noisePlayer")
     field.isAccessible = true
     field.set(this, player)
+}
+
+private fun CryDetectionEngine.getCooldownForTest(): Int {
+    val field = CryDetectionEngine::class.java.getDeclaredField("cooldownSamples")
+    field.isAccessible = true
+    return field.getInt(this)
+}
+
+private suspend fun CryDetectionEngine.awaitPlaybackJobForTest() {
+    val field = CryDetectionEngine::class.java.getDeclaredField("playbackJob")
+    field.isAccessible = true
+    val job = field.get(this) as? Job
+    job?.join()
+}
+
+private fun CryDetectionEngine.hasPlaybackJobForTest(): Boolean {
+    val field = CryDetectionEngine::class.java.getDeclaredField("playbackJob")
+    field.isAccessible = true
+    return field.get(this) != null
+}
+
+private fun CryDetectionEngine.getSoundSamplesForTest(): Int {
+    val field = CryDetectionEngine::class.java.getDeclaredField("soundSamples")
+    field.isAccessible = true
+    return field.getInt(this)
 }

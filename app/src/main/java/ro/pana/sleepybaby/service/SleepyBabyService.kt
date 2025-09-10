@@ -16,7 +16,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import ro.pana.sleepybaby.audio.ShushRecorder
-import ro.pana.sleepybaby.core.ai.OnDeviceCryClassifier
 import ro.pana.sleepybaby.domain.controller.SleepyBabyController
 import ro.pana.sleepybaby.engine.AutomationConfig
 import ro.pana.sleepybaby.engine.AutomationState
@@ -47,6 +46,13 @@ class SleepyBabyService : Service(), SleepyBabyController {
         private const val CHANNEL_ID = "sleepy_baby_service"
         const val ACTION_START_DETECTION = "start_detection"
         const val ACTION_STOP_DETECTION = "stop_detection"
+        @Volatile
+        private var foregroundActive: Boolean = false
+        @Volatile
+        private var serviceCreated: Boolean = false
+
+        fun isForegroundActive(): Boolean = foregroundActive
+        fun isServiceCreated(): Boolean = serviceCreated
     }
 
     inner class SleepyBabyBinder : Binder() {
@@ -56,18 +62,12 @@ class SleepyBabyService : Service(), SleepyBabyController {
     override fun onCreate() {
         super.onCreate()
 
+        serviceCreated = true
         createNotificationChannel()
         cryDetectionEngine = CryDetectionEngine(this)
         shushRecorder = ShushRecorder(this)
 
-        serviceScope.launch {
-            when (cryDetectionEngine.loadOnDeviceClassifier()) {
-                OnDeviceCryClassifier.Backend.ENERGY ->
-                    Log.i("SleepyBabyService", "Detector ready (energy heuristic)")
-                OnDeviceCryClassifier.Backend.UNINITIALIZED ->
-                    Log.e("SleepyBabyService", "Failed to initialize detector")
-            }
-        }
+        Log.i("SleepyBabyService", "Detector ready (energy heuristic)")
 
         // Monitor state changes for notification updates
         serviceScope.launch {
@@ -105,22 +105,31 @@ class SleepyBabyService : Service(), SleepyBabyController {
         stopShushPreview()
         cryDetectionEngine.release()
         serviceScope.cancel()
+        inForeground = false
+        foregroundActive = false
+        serviceCreated = false
         Log.d("SleepyBabyService", "Service destroyed")
     }
 
     private fun ensureForeground() {
         val notification = createNotification(AutomationState.Listening)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            )
+        if (!inForeground) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            inForeground = true
+            foregroundActive = true
         } else {
-            startForeground(NOTIFICATION_ID, notification)
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager.notify(NOTIFICATION_ID, notification)
         }
-        inForeground = true
     }
 
     private fun exitForeground() {
@@ -128,6 +137,7 @@ class SleepyBabyService : Service(), SleepyBabyController {
 
         stopForeground(STOP_FOREGROUND_REMOVE)
         inForeground = false
+        foregroundActive = false
     }
 
     private fun createNotificationChannel() {
@@ -203,9 +213,6 @@ class SleepyBabyService : Service(), SleepyBabyController {
         cryDetectionEngine.stop()
         exitForeground()
     }
-
-    override suspend fun initializeClassifier(): OnDeviceCryClassifier.Backend =
-        cryDetectionEngine.loadOnDeviceClassifier()
 
     override suspend fun recordShushSample(): String? {
         stopShushPreview()

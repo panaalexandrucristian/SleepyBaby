@@ -6,7 +6,6 @@ import ro.pana.sleepybaby.domain.controller.DetectionServiceLauncher
 import ro.pana.sleepybaby.domain.controller.SleepyBabyController
 import ro.pana.sleepybaby.engine.AutomationConfig
 import ro.pana.sleepybaby.engine.AutomationState
-import ro.pana.sleepybaby.core.ai.OnDeviceCryClassifier
 
 class AutomationConfigUseCases(private val repository: SettingsRepository) {
     fun observeConfig(): Flow<AutomationConfig> = repository.automationConfig
@@ -27,9 +26,6 @@ class MonitoringUseCases(
     fun observeEnabled(): Flow<Boolean> = repository.isEnabled
 
     suspend fun setEnabled(enabled: Boolean) = repository.updateEnabled(enabled)
-
-    suspend fun initializeDetector(controller: SleepyBabyController): OnDeviceCryClassifier.Backend =
-        controller.initializeClassifier()
 
     fun start(controller: SleepyBabyController) {
         launcher.start()

@@ -12,6 +12,9 @@ import ro.pana.sleepybaby.domain.controller.DetectionServiceLauncher
 class AndroidDetectionServiceLauncher(private val context: Context) : DetectionServiceLauncher {
 
     override fun start() {
+        if (SleepyBabyService.isForegroundActive()) {
+            return
+        }
         val intent = Intent(context, SleepyBabyService::class.java).apply {
             action = SleepyBabyService.ACTION_START_DETECTION
         }
@@ -22,6 +25,14 @@ class AndroidDetectionServiceLauncher(private val context: Context) : DetectionS
         val intent = Intent(context, SleepyBabyService::class.java).apply {
             action = SleepyBabyService.ACTION_STOP_DETECTION
         }
-        ContextCompat.startForegroundService(context, intent)
+        val serviceIsForeground = SleepyBabyService.isForegroundActive()
+        val serviceCreated = SleepyBabyService.isServiceCreated()
+        if (serviceIsForeground) {
+            ContextCompat.startForegroundService(context, intent)
+        } else if (serviceCreated) {
+            context.startService(intent)
+        } else {
+            context.stopService(Intent(context, SleepyBabyService::class.java))
+        }
     }
 }

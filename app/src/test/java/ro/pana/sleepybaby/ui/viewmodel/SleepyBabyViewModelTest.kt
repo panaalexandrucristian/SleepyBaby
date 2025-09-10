@@ -1,6 +1,7 @@
 package ro.pana.sleepybaby.ui.viewmodel
 
 import android.app.Application
+import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -10,7 +11,10 @@ import io.mockk.runs
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -26,7 +30,6 @@ import ro.pana.sleepybaby.domain.usecase.ShushUseCases
 import ro.pana.sleepybaby.domain.usecase.TutorialUseCases
 import ro.pana.sleepybaby.engine.AutomationConfig
 import ro.pana.sleepybaby.engine.AutomationState
-import ro.pana.sleepybaby.core.ai.OnDeviceCryClassifier
 import ro.pana.sleepybaby.R
 import org.junit.Assert.assertEquals
 
@@ -60,7 +63,6 @@ class SleepyBabyViewModelTest {
 
         every { monitoringUseCases.observeEnabled() } returns monitoringFlow
         coEvery { monitoringUseCases.setEnabled(any()) } just runs
-        coEvery { monitoringUseCases.initializeDetector(any()) } returns OnDeviceCryClassifier.Backend.ENERGY
         every { monitoringUseCases.start(any()) } just runs
         every { monitoringUseCases.stop(any()) } just runs
         every { monitoringUseCases.observeEngine(any()) } returns engineStateFlow
@@ -74,6 +76,15 @@ class SleepyBabyViewModelTest {
 
         every { controller.isShushPreviewPlaying() } returns false
         every { controller.updateConfig(any()) } just runs
+
+        clearMocks(
+            monitoringUseCases,
+            configUseCases,
+            tutorialUseCases,
+            shushUseCases,
+            controller,
+            answers = false
+        )
     }
 
     @After
@@ -123,5 +134,86 @@ class SleepyBabyViewModelTest {
 
         coVerify(exactly = 1) { configUseCases.updateTrackId("file:///custom_shush.mp3") }
         assertEquals(R.string.shush_record_success, viewModel.uiState.value.shushStatusMessage)
+    }
+
+    @Test
+    fun `shortcut start triggers monitoring when prerequisites met`() = runTest {
+        automationFlow.value = AutomationConfig(trackId = "file:///custom_shush.mp3")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onAudioPermissionChanged(true)
+        viewModel.onShortcutStartRequested()
+        advanceUntilIdle()
+
+        viewModel.onControllerConnected(controller)
+        advanceUntilIdle()
+
+        verify(exactly = 1) { monitoringUseCases.start(controller) }
+        coVerify(exactly = 1) { monitoringUseCases.setEnabled(true) }
+    }
+
+    @Test
+    fun `shortcut start shows message when custom shush missing`() = runTest {
+        automationFlow.value = AutomationConfig(trackId = "asset:///shhh_loop.mp3")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onAudioPermissionChanged(true)
+
+        val effectDeferred = async { viewModel.effects.filterIsInstance<SleepyBabyEffect.Toast>().first() }
+        viewModel.onShortcutStartRequested()
+
+        val effect = effectDeferred.await() as SleepyBabyEffect.Toast
+        assertEquals(R.string.shortcut_monitor_missing_custom, effect.messageRes)
+        verify(exactly = 0) { monitoringUseCases.start(any()) }
+    }
+
+    @Test
+    fun `shortcut start on cold start shows message when custom shush missing`() = runTest {
+        automationFlow.value = AutomationConfig(trackId = "asset:///shhh_loop.mp3")
+        val viewModel = createViewModel()
+
+        viewModel.onAudioPermissionChanged(true)
+
+        val effectDeferred = async { viewModel.effects.filterIsInstance<SleepyBabyEffect.Toast>().first() }
+        viewModel.onShortcutStartRequested()
+
+        advanceUntilIdle()
+
+        val effect = effectDeferred.await() as SleepyBabyEffect.Toast
+        assertEquals(R.string.shortcut_monitor_missing_custom, effect.messageRes)
+    }
+
+    @Test
+    fun `shortcut start shows message when microphone permission missing`() = runTest {
+        automationFlow.value = AutomationConfig(trackId = "file:///custom_shush.mp3")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val effectDeferred = async { viewModel.effects.filterIsInstance<SleepyBabyEffect.Toast>().first() }
+        viewModel.onShortcutStartRequested()
+
+        val effect = effectDeferred.await() as SleepyBabyEffect.Toast
+        assertEquals(R.string.shortcut_monitor_missing_permission, effect.messageRes)
+        verify(exactly = 0) { monitoringUseCases.start(any()) }
+    }
+
+    @Test
+    fun `record request waits for controller connection`() = runTest {
+        automationFlow.value = AutomationConfig(trackId = "asset:///shhh_loop.mp3")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onAudioPermissionChanged(true)
+        viewModel.onRecordShushRequested()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { shushUseCases.record(any()) }
+
+        viewModel.onControllerConnected(controller)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { shushUseCases.record(controller) }
     }
 }
