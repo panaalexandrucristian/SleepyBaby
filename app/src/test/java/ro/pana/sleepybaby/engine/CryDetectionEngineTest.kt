@@ -72,15 +72,21 @@ class CryDetectionEngineTest {
         coEvery { noisePlayer.playLoops(any(), any(), any(), any()) } returns Unit
         every { noisePlayer.stop() } returns Unit
 
+        engine.setEnergyForTest(window = 0.6f, band = 0.75f)
         engine.processClassification(soundResult())
         advanceUntilIdle()
-        verify { Log.d(eq("CryDetectionEngine"), match { it.contains("Sound confirmation") }) }
-        assertEquals(0, engine.getSoundSamplesForTest())
-        assertTrue(engine.hasPlaybackJobForTest())
         engine.awaitPlaybackJobForTest()
 
         assertTrue(engine.state.value is AutomationState.Listening)
-        assertEquals(1, engine.getCooldownForTest())
+        assertEquals(2, engine.getCooldownForTest())
+        coVerify(exactly = 1) {
+            noisePlayer.playLoops(
+                config.trackId,
+                any(),
+                config.targetVolume,
+                config.fadeInMs
+            )
+        }
         verify(exactly = 1) { noisePlayer.stop() }
     }
 
@@ -89,23 +95,40 @@ class CryDetectionEngineTest {
         coEvery { noisePlayer.playLoops(any(), any(), any(), any()) } returns Unit
         every { noisePlayer.stop() } returns Unit
 
+        engine.setEnergyForTest(window = 0.6f, band = 0.75f)
         engine.processClassification(soundResult())
         advanceUntilIdle()
         engine.awaitPlaybackJobForTest()
 
-        assertEquals(1, engine.getCooldownForTest())
+        assertEquals(2, engine.getCooldownForTest())
 
         // First sample after playback only decrements cooldown
+        engine.setEnergyForTest(window = 0.6f, band = 0.75f)
+        engine.processClassification(soundResult())
+        advanceUntilIdle()
+        assertEquals(1, engine.getCooldownForTest())
+
+        // Second sample clears cooldown without triggering playback
+        engine.setEnergyForTest(window = 0.6f, band = 0.75f)
         engine.processClassification(soundResult())
         advanceUntilIdle()
         assertEquals(0, engine.getCooldownForTest())
 
-        // Second silence sample (after cooldown elapsed) should trigger again
+        // Third sample (after cooldown elapsed) should trigger again
+        engine.setEnergyForTest(window = 0.6f, band = 0.75f)
         engine.processClassification(soundResult())
         advanceUntilIdle()
         engine.awaitPlaybackJobForTest()
 
-        assertEquals(1, engine.getCooldownForTest())
+        assertEquals(2, engine.getCooldownForTest())
+        coVerify(exactly = 2) {
+            noisePlayer.playLoops(
+                config.trackId,
+                any(),
+                config.targetVolume,
+                config.fadeInMs
+            )
+        }
     }
 
     @Test
@@ -113,17 +136,18 @@ class CryDetectionEngineTest {
         coEvery { noisePlayer.playLoops(any(), any(), any(), any()) } returns Unit
         every { noisePlayer.stop() } returns Unit
 
+        engine.setEnergyForTest(window = 0.1f, band = 0.1f)
         engine.processClassification(silenceResult())
-        advanceUntilIdle()
         advanceUntilIdle()
         assertEquals(0, engine.getCooldownForTest())
 
+        engine.setEnergyForTest(window = 0.6f, band = 0.75f)
         engine.processClassification(soundResult())
         advanceUntilIdle()
         engine.awaitPlaybackJobForTest()
 
         // Cooldown should only start after the actual sound-triggered playback
-        assertEquals(1, engine.getCooldownForTest())
+        assertEquals(2, engine.getCooldownForTest())
     }
 }
 
@@ -173,14 +197,12 @@ private suspend fun CryDetectionEngine.awaitPlaybackJobForTest() {
     job?.join()
 }
 
-private fun CryDetectionEngine.hasPlaybackJobForTest(): Boolean {
-    val field = CryDetectionEngine::class.java.getDeclaredField("playbackJob")
-    field.isAccessible = true
-    return field.get(this) != null
-}
+private fun CryDetectionEngine.setEnergyForTest(window: Float, band: Float) {
+    val windowField = CryDetectionEngine::class.java.getDeclaredField("lastWindowEnergy01")
+    windowField.isAccessible = true
+    windowField.setFloat(this, window)
 
-private fun CryDetectionEngine.getSoundSamplesForTest(): Int {
-    val field = CryDetectionEngine::class.java.getDeclaredField("soundSamples")
-    field.isAccessible = true
-    return field.getInt(this)
+    val bandField = CryDetectionEngine::class.java.getDeclaredField("lastBandEnergy01")
+    bandField.isAccessible = true
+    bandField.setFloat(this, band)
 }

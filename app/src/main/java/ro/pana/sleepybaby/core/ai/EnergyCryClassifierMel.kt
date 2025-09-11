@@ -13,7 +13,6 @@ import kotlin.math.roundToInt
  * - "Sustained": după un rise/margin clar, păstrăm CRY dacă rămâne peste prag
  */
 class EnergyCryClassifierMel(
-    private val sampleRate: Int = 16_000,
     private val melFmin: Float = 80f,
     private val melFmax: Float = 8000f,
     private val bandLowHz: Int = 500,

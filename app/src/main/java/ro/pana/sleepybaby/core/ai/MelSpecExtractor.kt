@@ -8,12 +8,12 @@ import kotlin.math.*
  */
 class MelSpecExtractor(
     private val sampleRate: Int = 16000,
-    private val windowSizeMs: Int = 1000,
-    private val hopSizeMs: Int = 500,
+    windowSizeMs: Int = 1000,
+    hopSizeMs: Int = 500,
     private val melBins: Int = 64,
     private val minFreq: Float = 80f,
     private val maxFreq: Float = 8000f,
-    private val normalizePerFrame: Boolean = false // keep false for EnergyCryClassifierMel
+    private val normalizePerFrame: Boolean = false
 ) {
     private val windowSize = (sampleRate * windowSizeMs / 1000).coerceAtLeast(1)
     private val hopSize = (sampleRate * hopSizeMs / 1000).coerceAtLeast(1)

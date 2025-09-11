@@ -27,7 +27,7 @@ class MelSpecExtractorTest {
     }
 
     @Test
-    fun `extract normalizes frames`() {
+    fun `extract returns absolute energy values`() {
         val extractor = MelSpecExtractor(melBins = 64)
 
         // Generate tone
@@ -35,14 +35,28 @@ class MelSpecExtractorTest {
 
         val features = extractor.extract(audioData)
 
-        // Check first frame is normalized (mean ~0, std ~1)
+        // With absolute log-mel, values should be non-negative and preserve relative energy.
+        if (features.isNotEmpty()) {
+            val frame = features[0]
+            assertTrue("Frame should contain positive energy bins", frame.all { it >= 0f })
+            assertTrue("Energy should not be all zeros", frame.any { it > 0f })
+        }
+    }
+
+    @Test
+    fun `extract normalizes frames when enabled`() {
+        val extractor = MelSpecExtractor(melBins = 64, normalizePerFrame = true)
+        val audioData = ShortArray(16000) { (sin(2 * PI * 440 * it / 16000) * 16000).toInt().toShort() }
+
+        val features = extractor.extract(audioData)
+
         if (features.isNotEmpty()) {
             val frame = features[0]
             val mean = frame.average()
             val variance = frame.map { (it - mean) * (it - mean) }.average()
 
             assertTrue("Mean should be close to 0", kotlin.math.abs(mean) < 0.1)
-            assertTrue("Variance should be reasonable", variance > 0.1)
+            assertTrue("Variance should remain significant", variance > 0.1)
         }
     }
 

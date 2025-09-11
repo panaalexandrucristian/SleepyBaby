@@ -53,7 +53,6 @@ class CryDetectionEngine(
     )
 
     private var classifier: CryClassifier = EnergyCryClassifierMel(
-        sampleRate = 16000,
         melFmin = 80f,
         melFmax = 8000f,
         bandLowHz = 500,
@@ -64,7 +63,7 @@ class CryDetectionEngine(
         energyFactor = 2.0f,
         steadyDeltaGate = 0.04f,
         minConsecutiveWindows = 2,
-        debug = true
+        debug = false
     )
     private val classifierMutex = Mutex()
 
@@ -236,7 +235,7 @@ class CryDetectionEngine(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal suspend fun processClassification(result: ClassificationResult) {
+    internal fun processClassification(result: ClassificationResult) {
         if (_state.value == AutomationState.Stopped) return
 
         // nu clasificăm/declanșăm în timpul playback-ului
@@ -321,7 +320,6 @@ class CryDetectionEngine(
         classifierMutex.withLock {
             try { classifier.release() } catch (_: Throwable) {}
             classifier = EnergyCryClassifierMel(
-                sampleRate = 16000,
                 melFmin = 80f,
                 melFmax = 8000f,
                 bandLowHz = 500,
@@ -332,7 +330,7 @@ class CryDetectionEngine(
                 energyFactor = 2.0f,
                 steadyDeltaGate = 0.04f,
                 minConsecutiveWindows = 2,
-                debug = true
+                debug = false
             )
         }
     }
