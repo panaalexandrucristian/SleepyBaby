@@ -291,7 +291,8 @@ class CryDetectionEngine(
                     trackUri = config.trackId,
                     loopCount = PLAYBACK_LOOP_COUNT,
                     targetVolume = config.targetVolume,
-                    fadeInMs = config.fadeInMs
+                    fadeInMs = config.fadeInMs,
+                    fadeOutMs = config.fadeOutMs
                 )
                 Log.i(TAG, "Shush playback completed")
             } catch (e: Exception) {

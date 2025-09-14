@@ -69,7 +69,7 @@ class CryDetectionEngineTest {
 
     @Test
     fun `sound detection triggers shush playback loops`() = runTest {
-        coEvery { noisePlayer.playLoops(any(), any(), any(), any()) } returns Unit
+        coEvery { noisePlayer.playLoops(any(), any(), any(), any(), any()) } returns Unit
         every { noisePlayer.stop() } returns Unit
 
         engine.setEnergyForTest(window = 0.6f, band = 0.75f)
@@ -84,7 +84,8 @@ class CryDetectionEngineTest {
                 config.trackId,
                 any(),
                 config.targetVolume,
-                config.fadeInMs
+                config.fadeInMs,
+                config.fadeOutMs
             )
         }
         verify(exactly = 1) { noisePlayer.stop() }
@@ -92,7 +93,7 @@ class CryDetectionEngineTest {
 
     @Test
     fun `cooldown prevents immediate retrigger`() = runTest {
-        coEvery { noisePlayer.playLoops(any(), any(), any(), any()) } returns Unit
+        coEvery { noisePlayer.playLoops(any(), any(), any(), any(), any()) } returns Unit
         every { noisePlayer.stop() } returns Unit
 
         engine.setEnergyForTest(window = 0.6f, band = 0.75f)
@@ -126,14 +127,15 @@ class CryDetectionEngineTest {
                 config.trackId,
                 any(),
                 config.targetVolume,
-                config.fadeInMs
+                config.fadeInMs,
+                config.fadeOutMs
             )
         }
     }
 
     @Test
     fun `silence input does not trigger playback`() = runTest {
-        coEvery { noisePlayer.playLoops(any(), any(), any(), any()) } returns Unit
+        coEvery { noisePlayer.playLoops(any(), any(), any(), any(), any()) } returns Unit
         every { noisePlayer.stop() } returns Unit
 
         engine.setEnergyForTest(window = 0.1f, band = 0.1f)
