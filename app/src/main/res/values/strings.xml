@@ -159,6 +159,7 @@
     <string name="notif_fading">Fading out...</string>
     <string name="notif_stopped">Service stopped</string>
     <string name="notif_action_stop">Stop</string>
+    <string name="notif_action_restart">Restart</string>
 
     <!-- App shortcuts -->
     <string name="shortcut_monitor_short">Quick Start</string>

@@ -160,6 +160,7 @@
     <string name="notif_fading">Se estompează…</string>
     <string name="notif_stopped">Serviciu oprit</string>
     <string name="notif_action_stop">Oprește</string>
+    <string name="notif_action_restart">Repornește</string>
 
     <!-- App shortcuts -->
     <string name="shortcut_monitor_short">Start rapid</string>

@@ -20,6 +20,7 @@ import ro.pana.sleepybaby.domain.controller.SleepyBabyController
 import ro.pana.sleepybaby.engine.AutomationConfig
 import ro.pana.sleepybaby.engine.AutomationState
 import ro.pana.sleepybaby.engine.CryDetectionEngine
+import ro.pana.sleepybaby.ui.MainActivity
 
 /**
  * Foreground service that runs the cry detection engine
@@ -46,6 +47,7 @@ class SleepyBabyService : Service(), SleepyBabyController {
         private const val CHANNEL_ID = "sleepy_baby_service"
         const val ACTION_START_DETECTION = "start_detection"
         const val ACTION_STOP_DETECTION = "stop_detection"
+        const val ACTION_RESTART_DETECTION = "restart_detection"
         @Volatile
         private var foregroundActive: Boolean = false
         @Volatile
@@ -84,6 +86,22 @@ class SleepyBabyService : Service(), SleepyBabyController {
             ACTION_START_DETECTION -> {
                 ensureForeground()
                 cryDetectionEngine.start()
+            }
+            ACTION_RESTART_DETECTION -> {
+                ensureForeground()
+                serviceScope.launch {
+                    try {
+                        cryDetectionEngine.stop()
+                    } catch (t: Throwable) {
+                        Log.w("SleepyBabyService", "Restart stop failed: ${t.message}")
+                    }
+                    try {
+                        cryDetectionEngine.start()
+                        Log.i("SleepyBabyService", "Detection restarted from notification")
+                    } catch (t: Throwable) {
+                        Log.e("SleepyBabyService", "Failed to restart detection", t)
+                    }
+                }
             }
             ACTION_STOP_DETECTION -> {
                 cryDetectionEngine.stop()
@@ -168,6 +186,24 @@ class SleepyBabyService : Service(), SleepyBabyController {
             stopIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val restartIntent = Intent(this, SleepyBabyService::class.java).apply {
+            action = ACTION_RESTART_DETECTION
+        }
+        val restartPendingIntent = PendingIntent.getService(
+            this,
+            1,
+            restartIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val contentIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val contentPendingIntent = PendingIntent.getActivity(
+            this,
+            2,
+            contentIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         val contentText = when (state) {
             is AutomationState.Listening -> getString(ro.pana.sleepybaby.R.string.notif_listening)
@@ -184,6 +220,12 @@ class SleepyBabyService : Service(), SleepyBabyController {
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentIntent(contentPendingIntent)
+            .addAction(
+                android.R.drawable.ic_media_play,
+                getString(ro.pana.sleepybaby.R.string.notif_action_restart),
+                restartPendingIntent
+            )
             .addAction(
                 android.R.drawable.ic_media_pause,
                 getString(ro.pana.sleepybaby.R.string.notif_action_stop),

@@ -8,12 +8,14 @@ import ro.pana.sleepybaby.engine.AutomationConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+// Define DataStore as a top-level singleton delegate to avoid multiple instances
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "sleepy_baby_settings")
+
 /**
  * Repository for persisting SleepyBaby settings using DataStore
  */
 class SettingsRepository(private val context: Context) {
-
-    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "sleepy_baby_settings")
+    private val appContext = context.applicationContext
 
     companion object {
         private val CRY_THRESHOLD_SECONDS = intPreferencesKey("cry_threshold_seconds")
@@ -29,7 +31,7 @@ class SettingsRepository(private val context: Context) {
     /**
      * Flow of automation configuration
      */
-    val automationConfig: Flow<AutomationConfig> = context.dataStore.data.map { preferences ->
+    val automationConfig: Flow<AutomationConfig> = appContext.dataStore.data.map { preferences ->
         AutomationConfig(
             cryThresholdSeconds = preferences[CRY_THRESHOLD_SECONDS] ?: 3,
             silenceThresholdSeconds = preferences[SILENCE_THRESHOLD_SECONDS] ?: 10,
@@ -43,14 +45,14 @@ class SettingsRepository(private val context: Context) {
     /**
      * Flow of enabled state
      */
-    val isEnabled: Flow<Boolean> = context.dataStore.data.map { preferences ->
+    val isEnabled: Flow<Boolean> = appContext.dataStore.data.map { preferences ->
         preferences[ENABLED] ?: false
     }
 
     /**
      * Flow indicating whether the onboarding tutorial was completed
      */
-    val tutorialCompleted: Flow<Boolean> = context.dataStore.data.map { preferences ->
+    val tutorialCompleted: Flow<Boolean> = appContext.dataStore.data.map { preferences ->
         preferences[TUTORIAL_COMPLETED] ?: false
     }
 
@@ -58,7 +60,7 @@ class SettingsRepository(private val context: Context) {
      * Update cry threshold seconds
      */
     suspend fun updateCryThreshold(seconds: Int) {
-        context.dataStore.edit { preferences ->
+        appContext.dataStore.edit { preferences ->
             preferences[CRY_THRESHOLD_SECONDS] = seconds
         }
     }
@@ -67,7 +69,7 @@ class SettingsRepository(private val context: Context) {
      * Update silence threshold seconds
      */
     suspend fun updateSilenceThreshold(seconds: Int) {
-        context.dataStore.edit { preferences ->
+        appContext.dataStore.edit { preferences ->
             preferences[SILENCE_THRESHOLD_SECONDS] = seconds
         }
     }
@@ -76,7 +78,7 @@ class SettingsRepository(private val context: Context) {
      * Update target volume
      */
     suspend fun updateTargetVolume(volume: Float) {
-        context.dataStore.edit { preferences ->
+        appContext.dataStore.edit { preferences ->
             preferences[TARGET_VOLUME] = volume.coerceIn(0f, 1f)
         }
     }
@@ -85,7 +87,7 @@ class SettingsRepository(private val context: Context) {
      * Update playback track id
      */
     suspend fun updateTrackId(trackId: String) {
-        context.dataStore.edit { preferences ->
+        appContext.dataStore.edit { preferences ->
             preferences[TRACK_ID] = trackId
         }
     }
@@ -94,7 +96,7 @@ class SettingsRepository(private val context: Context) {
      * Update fade durations
      */
     suspend fun updateFadeDurations(fadeInMs: Long, fadeOutMs: Long) {
-        context.dataStore.edit { preferences ->
+        appContext.dataStore.edit { preferences ->
             preferences[FADE_IN_MS] = fadeInMs
             preferences[FADE_OUT_MS] = fadeOutMs
         }
@@ -104,7 +106,7 @@ class SettingsRepository(private val context: Context) {
      * Update enabled state
      */
     suspend fun updateEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        appContext.dataStore.edit { preferences ->
             preferences[ENABLED] = enabled
         }
     }
@@ -113,7 +115,7 @@ class SettingsRepository(private val context: Context) {
      * Update the tutorial completion flag
      */
     suspend fun setTutorialCompleted(completed: Boolean) {
-        context.dataStore.edit { preferences ->
+        appContext.dataStore.edit { preferences ->
             preferences[TUTORIAL_COMPLETED] = completed
         }
     }
@@ -122,7 +124,7 @@ class SettingsRepository(private val context: Context) {
      * Update full automation config
      */
     suspend fun updateAutomationConfig(config: AutomationConfig) {
-        context.dataStore.edit { preferences ->
+        appContext.dataStore.edit { preferences ->
             preferences[CRY_THRESHOLD_SECONDS] = config.cryThresholdSeconds
             preferences[SILENCE_THRESHOLD_SECONDS] = config.silenceThresholdSeconds
             preferences[FADE_IN_MS] = config.fadeInMs
