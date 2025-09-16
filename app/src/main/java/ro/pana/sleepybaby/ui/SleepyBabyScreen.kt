@@ -66,8 +66,6 @@ fun SleepyBabyScreen(
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
     onMonitoringToggle: (Boolean) -> Unit,
-    onCryThresholdChanged: (Int) -> Unit,
-    onSilenceThresholdChanged: (Int) -> Unit,
     onTargetVolumeChanged: (Float) -> Unit,
     onBrightnessChanged: (Float) -> Unit,
     onRecordShush: () -> Unit,
@@ -303,22 +301,6 @@ fun SleepyBabyScreen(
                 title = stringResource(id = R.string.params_title),
                 subtitle = stringResource(id = R.string.params_subtitle)
             ) {
-                SliderSetting(
-                    title = stringResource(id = R.string.param_cry_threshold, state.automationConfig.cryThresholdSeconds),
-                    value = state.automationConfig.cryThresholdSeconds.toFloat(),
-                    valueRange = 1f..10f,
-                    steps = 8,
-                    onValueChange = { value -> onCryThresholdChanged(value.roundToInt()) }
-                )
-
-                SliderSetting(
-                    title = stringResource(id = R.string.param_silence_threshold, state.automationConfig.silenceThresholdSeconds),
-                    value = state.automationConfig.silenceThresholdSeconds.toFloat(),
-                    valueRange = 5f..30f,
-                    steps = 24,
-                    onValueChange = { value -> onSilenceThresholdChanged(value.roundToInt()) }
-                )
-
                 SliderSetting(
                     title = stringResource(id = R.string.param_target_volume, (state.automationConfig.targetVolume * 100).toInt()),
                     value = state.automationConfig.targetVolume,

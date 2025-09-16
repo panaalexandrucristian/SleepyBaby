@@ -4,8 +4,6 @@ package ro.pana.sleepybaby.engine
  * Configuration for the cry detection automation engine
  */
 data class AutomationConfig(
-    val cryThresholdSeconds: Int = 3,
-    val silenceThresholdSeconds: Int = 10,
     val fadeInMs: Long = 10000,
     val fadeOutMs: Long = 10000,
     val targetVolume: Float = 0.7f,

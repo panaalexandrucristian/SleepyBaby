@@ -187,18 +187,6 @@ class SleepyBabyViewModel(
         }
     }
 
-    fun onCryThresholdChanged(seconds: Int) {
-        viewModelScope.launch {
-            configUseCases.updateCryThreshold(seconds)
-        }
-    }
-
-    fun onSilenceThresholdChanged(seconds: Int) {
-        viewModelScope.launch {
-            configUseCases.updateSilenceThreshold(seconds)
-        }
-    }
-
     fun onTargetVolumeChanged(volume: Float) {
         viewModelScope.launch {
             configUseCases.updateTargetVolume(volume)

@@ -10,10 +10,6 @@ import ro.pana.sleepybaby.engine.AutomationState
 class AutomationConfigUseCases(private val repository: SettingsRepository) {
     fun observeConfig(): Flow<AutomationConfig> = repository.automationConfig
 
-    suspend fun updateCryThreshold(seconds: Int) = repository.updateCryThreshold(seconds)
-
-    suspend fun updateSilenceThreshold(seconds: Int) = repository.updateSilenceThreshold(seconds)
-
     suspend fun updateTargetVolume(volume: Float) = repository.updateTargetVolume(volume)
 
     suspend fun updateTrackId(trackId: String) = repository.updateTrackId(trackId)

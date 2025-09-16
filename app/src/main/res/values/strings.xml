@@ -139,8 +139,7 @@
     <!-- Parameters section -->
     <string name="params_title">Fine-tune settings</string>
     <string name="params_subtitle">Adjust sensitivity and volume for your family.</string>
-    <string name="param_cry_threshold">Cry threshold: %1$ds</string>
-    <string name="param_silence_threshold">Silence threshold: %1$ds</string>
+    
     <string name="param_target_volume">Target volume: %1$d%%</string>
 
     <!-- Info card -->

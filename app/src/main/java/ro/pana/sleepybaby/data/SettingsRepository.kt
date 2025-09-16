@@ -18,8 +18,6 @@ class SettingsRepository(private val context: Context) {
     private val appContext = context.applicationContext
 
     companion object {
-        private val CRY_THRESHOLD_SECONDS = intPreferencesKey("cry_threshold_seconds")
-        private val SILENCE_THRESHOLD_SECONDS = intPreferencesKey("silence_threshold_seconds")
         private val FADE_IN_MS = longPreferencesKey("fade_in_ms")
         private val FADE_OUT_MS = longPreferencesKey("fade_out_ms")
         private val TARGET_VOLUME = floatPreferencesKey("target_volume")
@@ -33,8 +31,6 @@ class SettingsRepository(private val context: Context) {
      */
     val automationConfig: Flow<AutomationConfig> = appContext.dataStore.data.map { preferences ->
         AutomationConfig(
-            cryThresholdSeconds = preferences[CRY_THRESHOLD_SECONDS] ?: 3,
-            silenceThresholdSeconds = preferences[SILENCE_THRESHOLD_SECONDS] ?: 10,
             fadeInMs = preferences[FADE_IN_MS] ?: 10000L,
             fadeOutMs = preferences[FADE_OUT_MS] ?: 5000L,
             targetVolume = preferences[TARGET_VOLUME] ?: 0.7f,
@@ -54,24 +50,6 @@ class SettingsRepository(private val context: Context) {
      */
     val tutorialCompleted: Flow<Boolean> = appContext.dataStore.data.map { preferences ->
         preferences[TUTORIAL_COMPLETED] ?: false
-    }
-
-    /**
-     * Update cry threshold seconds
-     */
-    suspend fun updateCryThreshold(seconds: Int) {
-        appContext.dataStore.edit { preferences ->
-            preferences[CRY_THRESHOLD_SECONDS] = seconds
-        }
-    }
-
-    /**
-     * Update silence threshold seconds
-     */
-    suspend fun updateSilenceThreshold(seconds: Int) {
-        appContext.dataStore.edit { preferences ->
-            preferences[SILENCE_THRESHOLD_SECONDS] = seconds
-        }
     }
 
     /**
@@ -125,8 +103,6 @@ class SettingsRepository(private val context: Context) {
      */
     suspend fun updateAutomationConfig(config: AutomationConfig) {
         appContext.dataStore.edit { preferences ->
-            preferences[CRY_THRESHOLD_SECONDS] = config.cryThresholdSeconds
-            preferences[SILENCE_THRESHOLD_SECONDS] = config.silenceThresholdSeconds
             preferences[FADE_IN_MS] = config.fadeInMs
             preferences[FADE_OUT_MS] = config.fadeOutMs
             preferences[TARGET_VOLUME] = config.targetVolume

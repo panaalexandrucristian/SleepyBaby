@@ -144,8 +144,6 @@ class MainActivity : ComponentActivity() {
                         onStartMonitoring = { viewModel.onStartMonitoringRequested() },
                         onStopMonitoring = { viewModel.onStopMonitoringRequested() },
                         onMonitoringToggle = viewModel::onMonitoringToggleChanged,
-                        onCryThresholdChanged = viewModel::onCryThresholdChanged,
-                        onSilenceThresholdChanged = viewModel::onSilenceThresholdChanged,
                         onTargetVolumeChanged = viewModel::onTargetVolumeChanged,
                         onBrightnessChanged = viewModel::onBrightnessChanged,
                         onRecordShush = viewModel::onRecordShushRequested,
