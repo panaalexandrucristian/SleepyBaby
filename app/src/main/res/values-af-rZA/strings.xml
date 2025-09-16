@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SleepyBaby</string>
+
+    <!-- App Bar / Titles -->
+    <string name="appbar_title">Sleepy Baby</string>
+    <string name="title_settings">Instellings</string>
+    <string name="title_about">Oor Sleepy Baby</string>
+    <string name="title_timer">Tydhouer</string>
+    <string name="title_premium">Premium</string>
+
+    <!-- Buttons -->
+    <string name="btn_play">Speel</string>
+    <string name="btn_pause">Pouse</string>
+    <string name="btn_stop">Stop</string>
+    <string name="btn_record">Neem op</string>
+    <string name="btn_save">Stoor</string>
+    <string name="btn_cancel">Kanselleer</string>
+    <string name="btn_ok">OK</string>
+    <string name="btn_yes">Ja</string>
+    <string name="btn_no">Nee</string>
+
+    <!-- Monitor -->
+    <string name="monitor_title">Aktiewe monitering</string>
+    <string name="monitor_btn_start">Begin</string>
+    <string name="monitor_btn_stop">Stop</string>
+
+    <!-- Tutorial -->
+    <string name="tutorial_title">Aan die gang</string>
+
+    <!-- Brightness -->
+    <string name="brightness_title">Skermhelderheid</string>
+    <string name="brightness_value">Helderheid: %1$d%%</string>
+
+    <!-- Parameters -->
+    <string name="params_title">Fyninstellings</string>
+    <string name="params_subtitle">Verstel volume vir jou gesin.</string>
+    <string name="param_target_volume">Teikenvolume: %1$d%%</string>
+
+    <!-- Engine state labels -->
+    <string name="state_listening">Luister</string>
+    <string name="state_pending">Bevestig gehuil</string>
+    <string name="state_playing">Speel "shh"</string>
+    <string name="state_fading">Vervaag</string>
+    <string name="state_stopped">Gestop</string>
+
+    <!-- Foreground notification -->
+    <string name="notif_title">Sleepy Baby aktief</string>
+    <string name="notif_listening">Luister na baba se gehuil…</string>
+    <string name="notif_pending">Gehuil opgespoor (%1$ds)</string>
+    <string name="notif_playing">Speel kalmerende klanke</string>
+    <string name="notif_fading">Vervaag…</string>
+    <string name="notif_stopped">Diens gestop</string>
+    <string name="notif_action_stop">Stop</string>
+    <string name="notif_action_restart">Herbegin</string>
+
+    <!-- Shortcuts -->
+    <string name="shortcut_monitor_short">Vinnige begin</string>
+    <string name="shortcut_monitor_long">Begin monitering</string>
+</resources>

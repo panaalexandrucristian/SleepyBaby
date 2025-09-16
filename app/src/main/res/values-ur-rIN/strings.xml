@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SleepyBaby</string>
+
+    <!-- App Bar / Titles -->
+    <string name="appbar_title">Sleepy Baby</string>
+    <string name="title_settings">ترتیبات</string>
+    <string name="title_about">Sleepy Baby کے بارے میں</string>
+    <string name="title_timer">ٹائمر</string>
+    <string name="title_premium">پریمیم</string>
+
+    <!-- Buttons -->
+    <string name="btn_play">چلائیں</string>
+    <string name="btn_pause">روکیں</string>
+    <string name="btn_stop">روکیں</string>
+    <string name="btn_record">ریکارڈ کریں</string>
+    <string name="btn_save">محفوظ کریں</string>
+    <string name="btn_cancel">منسوخ کریں</string>
+    <string name="btn_ok">ٹھیک ہے</string>
+    <string name="btn_yes">ہاں</string>
+    <string name="btn_no">نہیں</string>
+
+    <!-- Monitor -->
+    <string name="monitor_title">فعال مانیٹرنگ</string>
+    <string name="monitor_btn_start">شروع کریں</string>
+    <string name="monitor_btn_stop">روکیں</string>
+
+    <!-- Tutorial -->
+    <string name="tutorial_title">شروع کریں</string>
+
+    <!-- Brightness -->
+    <string name="brightness_title">اسکرین کی روشنی</string>
+    <string name="brightness_value">روشنائی: %1$d%%</string>
+
+    <!-- Parameters -->
+    <string name="params_title">تفصیلی ترتیبات</string>
+    <string name="params_subtitle">اپنے خاندان کے لیے والیوم کو ایڈجسٹ کریں۔</string>
+    <string name="param_target_volume">ہدف والیوم: %1$d%%</string>
+
+    <!-- Engine state labels -->
+    <string name="state_listening">سن رہا ہے</string>
+    <string name="state_pending">رونے کی تصدیق</string>
+    <string name="state_playing">"شش" چلا رہا ہے</string>
+    <string name="state_fading">مدھم ہو رہا ہے</string>
+    <string name="state_stopped">رکا ہوا</string>
+
+    <!-- Foreground notification -->
+    <string name="notif_title">Sleepy Baby فعال ہے</string>
+    <string name="notif_listening">بچے کے رونے کی آواز سن رہا ہے…</string>
+    <string name="notif_pending">رونا معلوم ہوا (%1$ds)</string>
+    <string name="notif_playing">سکون بخش آوازیں چل رہی ہیں</string>
+    <string name="notif_fading">آہستہ آہستہ بند ہو رہا ہے…</string>
+    <string name="notif_stopped">سروس رک گئی</string>
+    <string name="notif_action_stop">روکیں</string>
+    <string name="notif_action_restart">دوبارہ شروع کریں</string>
+
+    <!-- Shortcuts -->
+    <string name="shortcut_monitor_short">فوری آغاز</string>
+    <string name="shortcut_monitor_long">مانیٹرنگ شروع کریں</string>
+
+
+    <!-- Auto-filled placeholders (English) to ensure parity -->
+    <string name="microphone_permission_required">Microphone permission is required for cry detection.</string>
+    <string name="microphone_permission_instructions">Grant the microphone permission from system settings to enable detection.</string>
+    <string name="detector_unavailable">The detector could not initialize. Restart the app and try again.</string>
+    <string name="detector_info">Uses the built-in local detector, no additional files needed.</string>
+    <string name="shush_recording_title">Record your “shh” sample</string>
+    <string name="shush_recording_description">Hold the phone close and whisper “shh” for 10 seconds. Sleepy Baby will loop your own recording whenever it detects crying.</string>
+    <string name="shush_record_button">Record 10s “shh”</string>
+    <string name="shush_recording_in_progress">Recording…</string>
+    <string name="shush_recording_countdown">%1$d seconds left</string>
+    <string name="shush_record_success">Custom shushing loop saved.</string>
+    <string name="shush_record_failure">Recording failed. Please try again.</string>
+    <string name="shush_record_available">Personal shushing loop active.</string>
+    <string name="shush_record_missing">No personal recording yet.</string>
+    <string name="shush_preview_button_play">Play recording</string>
+    <string name="shush_preview_button_stop">Stop preview</string>
+    <string name="shush_preview_playing">Playing your shushing loop.</string>
+    <string name="shush_preview_finished">Preview finished.</string>
+    <string name="shush_preview_stopped">Preview stopped.</string>
+    <string name="shush_preview_failed">Unable to play recording.</string>
+    <string name="title_sounds">Sounds</string>
+    <string name="title_favorites">Favorites</string>
+    <string name="title_recordings">Recordings</string>
+    <string name="title_privacy_policy">Privacy Policy</string>
+    <string name="title_terms">Terms &amp; Conditions</string>
+    <string name="btn_next">Next</string>
+    <string name="btn_previous">Previous</string>
+    <string name="btn_delete">Delete</string>
+    <string name="btn_close">Close</string>
+    <string name="btn_skip">Skip</string>
+    <string name="btn_retry">Retry</string>
+    <string name="btn_settings">Settings</string>
+    <string name="btn_favorite_add">Add to favorites</string>
+    <string name="btn_try_premium">Try Premium</string>
+    <string name="btn_subscribe">Subscribe</string>
+    <string name="btn_subscribe_annual">Annual subscription</string>
+    <string name="btn_contact">Contact us</string>
+    <string name="btn_share">Share</string>
+    <string name="btn_rate">Rate us</string>
+    <string name="notif_timer_done">The timer stopped the sound.</string>
+    <string name="notif_new_sounds">New sounds available in Sleepy Baby!</string>
+    <string name="notif_trial_days">You have %1$d trial days left.</string>
+    <string name="notif_premium_thanks">Thanks for choosing Premium!</string>
+    <string name="desc_welcome">Welcome to Sleepy Baby, the app that helps your baby fall asleep with calming sounds and lullabies. Together toward peaceful nights.</string>
+    <string name="desc_content">Choose from dozens of calming sounds and lullabies for bedtime.</string>
+    <string name="desc_timer">Set a timer so the sounds stop automatically after the selected duration. Put your baby to sleep without worrying about turning the app off.</string>
+    <string name="desc_recording">Record yourself singing a favorite lullaby. Save it and play it whenever your baby needs to hear your voice.</string>
+    <string name="desc_night_light">Enable the night light: the screen emits a soft glow while sounds play, comforting your baby in the dark.</string>
+    <string name="desc_theme">Switch between light and dark themes so the app is comfortable day or night.</string>
+    <string name="desc_premium">Premium unlocks all sounds and features with no limits. Enjoy regularly updated content without interruptions.</string>
+    <string name="msg_no_favorites">You have no favorite sounds yet.</string>
+    <string name="msg_no_recordings">You have no saved recordings yet.</string>
+    <string name="msg_favorite_added">"%1$s" was added to favorites.</string>
+    <string name="msg_favorite_removed">"%1$s" was removed from favorites.</string>
+    <string name="msg_record_saved">Recording saved.</string>
+    <string name="msg_record_deleted">Recording deleted.</string>
+    <string name="msg_error_audio">Unable to play the sound.</string>
+    <string name="msg_error_record">Recording failed. Try again.</string>
+    <string name="hero_status_on">Sleepy Baby is listening</string>
+    <string name="hero_status_off">Sleepy Baby is resting</string>
+    <string name="hero_desc_on">Sleepy Baby listens gently and plays your soothing sound.</string>
+    <string name="hero_desc_off">To help you, Sleepy Baby needs permission to listen.</string>
+    <string name="hero_info_1">Real-time updates</string>
+    <string name="hero_info_2_has_custom">Your soothing sound is active</string>
+    <string name="hero_info_2_no_custom">Default shush active</string>
+    <string name="monitor_subtitle_on">Sleepy Baby is attentive to your baby.</string>
+    <string name="monitor_subtitle_off">To start, Sleepy Baby needs permission to listen.</string>
+    <string name="monitor_helper">Start, stop, and track cry detection here.</string>
+    <string name="monitor_helper_requires_recording">Record a soothing shush before you can start monitoring.</string>
+    <string name="monitor_toggle_title">Start listening</string>
+    <string name="monitor_toggle_support_on">Sleepy Baby notifies you gently, without disturbing you.</string>
+    <string name="monitor_toggle_support_off">Sleepy Baby needs microphone access to listen.</string>
+    <string name="monitor_needs_recording">Please record a soothing shush before starting.</string>
+    <string name="tutorial_progress">Step %1$d of %2$d</string>
+    <string name="tutorial_skip">Skip</string>
+    <string name="tutorial_back">Back</string>
+    <string name="tutorial_next">Next</string>
+    <string name="tutorial_done">Done</string>
+    <string name="tutorial_step_record_title">Record your calming shush</string>
+    <string name="tutorial_step_record_body">Capture a 10-second whisper near the microphone so Sleepy Baby can replay your own soothing sound.</string>
+    <string name="tutorial_step_permission_title">Let Sleepy Baby listen</string>
+    <string name="tutorial_step_permission_body">Grant microphone access when prompted. Monitoring stays on-device and never leaves your phone.</string>
+    <string name="tutorial_step_monitor_title">Start monitoring with confidence</string>
+    <string name="tutorial_step_monitor_body">Once you have a recording, enable monitoring and adjust brightness so the screen stays gentle at night.</string>
+    <string name="tutorial_restart_button">Replay tutorial</string>
+    <string name="brightness_subtitle">Dim the display so baby can rest easier.</string>
+    <string name="brightness_helper">Slide left to reduce the light while Sleepy Baby stays on.</string>
+    <string name="how_title">How it works</string>
+    <string name="how_bullets">• Listens quietly in the background using local detection • Plays your soothing shush after cries are detected • Gradually lowers the volume as your baby calms</string>
+    <string name="notif_channel_name">Sleepy Baby Service</string>
+    <string name="notif_channel_desc">Cry detection automation service</string>
+    <string name="shortcut_monitor_missing_custom">Record a soothing shush before using the shortcut.</string>
+    <string name="shortcut_monitor_missing_permission">Allow microphone access to use the shortcut.</string>
+</resources>
