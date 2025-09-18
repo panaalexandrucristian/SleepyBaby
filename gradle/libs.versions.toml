@@ -8,6 +8,10 @@ compose-ui = "1.6.1"
 media3 = "1.2.0"
 datastore = "1.0.0"
 coroutines = "1.7.3"
+google-services = "4.4.2"
+firebase-bom = "33.1.2"
+firebase-crashlytics-gradle = "2.9.9"
+firebase-perf-plugin = "1.4.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.12.0" }
@@ -28,6 +32,11 @@ media3-common = { group = "androidx.media3", name = "media3-common", version.ref
 
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
+firebase-analytics-ktx = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
+firebase-crashlytics-ktx = { group = "com.google.firebase", name = "firebase-crashlytics-ktx" }
+firebase-perf-ktx = { group = "com.google.firebase", name = "firebase-perf-ktx" }
+
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 
@@ -39,3 +48,6 @@ mockk = { group = "io.mockk", name = "mockk", version = "1.13.9" }
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }
+firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-gradle" }
+firebasePerformance = { id = "com.google.firebase.firebase-perf", version.ref = "firebase-perf-plugin" }

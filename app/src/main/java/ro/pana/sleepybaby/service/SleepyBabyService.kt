@@ -15,6 +15,8 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.google.firebase.crashlytics.ktx.crashlytics
+import com.google.firebase.ktx.Firebase
 import ro.pana.sleepybaby.audio.ShushRecorder
 import ro.pana.sleepybaby.domain.controller.SleepyBabyController
 import ro.pana.sleepybaby.engine.AutomationConfig
@@ -94,12 +96,14 @@ class SleepyBabyService : Service(), SleepyBabyController {
                         cryDetectionEngine.stop()
                     } catch (t: Throwable) {
                         Log.w("SleepyBabyService", "Restart stop failed: ${t.message}")
+                        Firebase.crashlytics.recordException(t)
                     }
                     try {
                         cryDetectionEngine.start()
                         Log.i("SleepyBabyService", "Detection restarted from notification")
                     } catch (t: Throwable) {
                         Log.e("SleepyBabyService", "Failed to restart detection", t)
+                        Firebase.crashlytics.recordException(t)
                     }
                 }
             }

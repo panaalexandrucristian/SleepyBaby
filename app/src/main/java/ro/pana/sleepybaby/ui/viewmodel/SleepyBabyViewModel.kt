@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ro.pana.sleepybaby.R
+import ro.pana.sleepybaby.analytics.AnalyticsEvents
+import ro.pana.sleepybaby.analytics.AnalyticsLogger
+import ro.pana.sleepybaby.analytics.PerformanceTracer
 import ro.pana.sleepybaby.domain.controller.SleepyBabyController
 import ro.pana.sleepybaby.domain.usecase.AutomationConfigUseCases
 import ro.pana.sleepybaby.domain.usecase.MonitoringUseCases
@@ -76,7 +79,16 @@ class SleepyBabyViewModel(
     }
 
     fun onAudioPermissionChanged(granted: Boolean) {
+        val previous = _uiState.value.hasAudioPermission
         _uiState.update { it.copy(hasAudioPermission = granted) }
+        if (previous != granted) {
+            val event = if (granted) {
+                AnalyticsEvents.AUDIO_PERMISSION_GRANTED
+            } else {
+                AnalyticsEvents.AUDIO_PERMISSION_DENIED
+            }
+            AnalyticsLogger.logEvent(event)
+        }
         if (!granted) {
             onStopMonitoringRequested()
             pendingShortcutStart = false
@@ -94,7 +106,16 @@ class SleepyBabyViewModel(
     }
 
     fun onBrightnessChanged(value: Float) {
-        _uiState.update { it.copy(brightness = value.coerceIn(0.1f, 1f)) }
+        val clamped = value.coerceIn(0.1f, 1f)
+        val previous = _uiState.value.brightness
+        if (kotlin.math.abs(previous - clamped) < 0.001f) {
+            return
+        }
+        _uiState.update { it.copy(brightness = clamped) }
+        AnalyticsLogger.logEvent(
+            AnalyticsEvents.BRIGHTNESS_CHANGED,
+            mapOf("value" to clamped.toDouble())
+        )
     }
 
     fun onControllerConnected(controller: SleepyBabyController) {
@@ -161,7 +182,13 @@ class SleepyBabyViewModel(
             !_uiState.value.hasAudioPermission -> effectsChannel.trySend(SleepyBabyEffect.Toast(R.string.monitor_toggle_support_off))
             !_uiState.value.hasCustomShush -> effectsChannel.trySend(SleepyBabyEffect.Toast(R.string.monitor_needs_recording))
             else -> viewModelScope.launch {
-                monitoringUseCases.start(controller)
+                PerformanceTracer.trace("monitor_start_usecase") {
+                    monitoringUseCases.start(controller)
+                }
+                AnalyticsLogger.logEvent(
+                    AnalyticsEvents.MONITOR_START,
+                    mapOf("persist_flag" to persist)
+                )
                 if (persist) {
                     monitoringUseCases.setEnabled(true)
                 }
@@ -172,7 +199,13 @@ class SleepyBabyViewModel(
     fun onStopMonitoringRequested(persist: Boolean = true) {
         val controller = controller ?: return
         viewModelScope.launch {
-            monitoringUseCases.stop(controller)
+            PerformanceTracer.trace("monitor_stop_usecase") {
+                monitoringUseCases.stop(controller)
+            }
+            AnalyticsLogger.logEvent(
+                AnalyticsEvents.MONITOR_STOP,
+                mapOf("persist_flag" to persist)
+            )
             if (persist) {
                 monitoringUseCases.setEnabled(false)
             }
@@ -217,22 +250,28 @@ class SleepyBabyViewModel(
                 _uiState.update { it.copy(shushCountdownSeconds = null) }
             }
 
-            val recordedUri = shushUseCases.record(activeController)
+            val recordedUri = PerformanceTracer.traceSuspend("shush_record_usecase") {
+                shushUseCases.record(activeController)
+            }
             countdownJob.cancel()
             _uiState.update { it.copy(isRecordingShush = false, shushCountdownSeconds = null) }
 
             if (recordedUri != null) {
                 configUseCases.updateTrackId(recordedUri)
                 _uiState.update { it.copy(shushStatusMessage = R.string.shush_record_success) }
+                AnalyticsLogger.logEvent(AnalyticsEvents.SHUSH_RECORD_SUCCESS)
 
                 if (resumeAfter) {
-                    monitoringUseCases.start(activeController)
+                    PerformanceTracer.trace("monitor_start_after_record") {
+                        monitoringUseCases.start(activeController)
+                    }
                     monitoringUseCases.setEnabled(true)
                 }
                 maybeResumeMonitoring()
             } else {
                 _uiState.update { it.copy(shushStatusMessage = R.string.shush_record_failure) }
                 effectsChannel.send(SleepyBabyEffect.Toast(R.string.shush_record_failure))
+                AnalyticsLogger.logEvent(AnalyticsEvents.SHUSH_RECORD_FAILURE)
             }
         }
     }
@@ -244,18 +283,24 @@ class SleepyBabyViewModel(
         }
 
         if (_uiState.value.isPlayingShushPreview) {
-            shushUseCases.stopPreview(controller)
+            PerformanceTracer.trace("shush_preview_stop_usecase") {
+                shushUseCases.stopPreview(controller)
+            }
             previewMonitorJob?.cancel()
             previewMonitorJob = null
             _uiState.update { it.copy(isPlayingShushPreview = false, shushStatusMessage = R.string.shush_preview_stopped) }
+            AnalyticsLogger.logEvent(AnalyticsEvents.SHUSH_PREVIEW_STOP)
             return
         }
 
         viewModelScope.launch {
-            val success = shushUseCases.playPreview(controller)
+            val success = PerformanceTracer.traceSuspend("shush_preview_play_usecase") {
+                shushUseCases.playPreview(controller)
+            }
             if (success) {
                 _uiState.update { it.copy(isPlayingShushPreview = true, shushStatusMessage = R.string.shush_preview_playing) }
                 monitorPreviewPlayback(controller)
+                AnalyticsLogger.logEvent(AnalyticsEvents.SHUSH_PREVIEW_PLAY)
             } else {
                 _uiState.update { it.copy(shushStatusMessage = R.string.shush_preview_failed) }
                 effectsChannel.send(SleepyBabyEffect.Toast(R.string.shush_preview_failed))
@@ -266,15 +311,18 @@ class SleepyBabyViewModel(
     fun onTutorialSkipped() {
         viewModelScope.launch { tutorialUseCases.setCompleted(true) }
         _uiState.update { it.copy(tutorialVisible = false) }
+        AnalyticsLogger.logEvent(AnalyticsEvents.TUTORIAL_SKIP)
     }
 
     fun onTutorialFinished() {
         viewModelScope.launch { tutorialUseCases.setCompleted(true) }
         _uiState.update { it.copy(tutorialVisible = false) }
+        AnalyticsLogger.logEvent(AnalyticsEvents.TUTORIAL_COMPLETE)
     }
 
     fun onTutorialReplayRequested() {
         viewModelScope.launch { tutorialUseCases.setCompleted(false) }
+        AnalyticsLogger.logEvent(AnalyticsEvents.TUTORIAL_RESTART)
     }
 
     private fun observeConfigUpdates() {

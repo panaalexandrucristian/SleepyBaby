@@ -29,6 +29,8 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import ro.pana.sleepybaby.analytics.AnalyticsEvents
+import ro.pana.sleepybaby.analytics.AnalyticsLogger
 import ro.pana.sleepybaby.data.SettingsRepository
 import ro.pana.sleepybaby.service.AndroidDetectionServiceLauncher
 import ro.pana.sleepybaby.service.SleepyBabyService
@@ -72,7 +74,10 @@ class MainActivity : ComponentActivity() {
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { /* no-op, foreground notification updates show rationale via system UI */ }
+    ) { granted ->
+        val event = if (granted) AnalyticsEvents.NOTIFICATION_PERMISSION_GRANTED else AnalyticsEvents.NOTIFICATION_PERMISSION_DENIED
+        AnalyticsLogger.logEvent(event)
+    }
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -199,6 +204,7 @@ class MainActivity : ComponentActivity() {
             }
 
             else -> {
+                AnalyticsLogger.logEvent(AnalyticsEvents.AUDIO_PERMISSION_PROMPT)
                 requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             }
         }
@@ -212,6 +218,7 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            AnalyticsLogger.logEvent(AnalyticsEvents.NOTIFICATION_PERMISSION_PROMPT)
             requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }

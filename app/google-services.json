@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "354094529337",
+    "project_id": "sleepy-baby-2b6d0",
+    "storage_bucket": "sleepy-baby-2b6d0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354094529337:android:66fae6a8016035231446e8",
+        "android_client_info": {
+          "package_name": "ro.pana.sleepybaby"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUvCfbgJuDP8aJyWPDORt1eGM2T_8T9eE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
