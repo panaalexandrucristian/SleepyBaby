@@ -1,8 +1,9 @@
 package ro.pana.sleepybaby.analytics
 
+import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.analytics.ktx.logEvent
 import com.google.firebase.ktx.Firebase
-import com.google.firebase.analytics.ktx.analytics
+import ro.pana.sleepybaby.BuildConfig
 
 /**
  * Lightweight wrapper over Firebase Analytics that keeps event logging centralized.
@@ -10,6 +11,7 @@ import com.google.firebase.analytics.ktx.analytics
 object AnalyticsLogger {
 
     fun logEvent(name: String, params: Map<String, Any?> = emptyMap()) {
+        if (!BuildConfig.ENABLE_ANALYTICS) return
         Firebase.analytics.logEvent(name) {
             params.forEach { (key, value) ->
                 when (value) {

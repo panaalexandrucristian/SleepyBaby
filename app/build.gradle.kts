@@ -10,6 +10,15 @@ android {
     namespace = "ro.pana.sleepybaby"
     compileSdk = 36
 
+    val releaseStoreFilePath = project.findProperty("sleepybabyReleaseStoreFile") as String?
+    val releaseStorePassword = project.findProperty("sleepybabyReleaseStorePassword") as String?
+    val releaseKeyAlias = project.findProperty("sleepybabyReleaseKeyAlias") as String?
+    val releaseKeyPassword = project.findProperty("sleepybabyReleaseKeyPassword") as String?
+    val isReleaseSigningConfigured = !releaseStoreFilePath.isNullOrBlank() &&
+        !releaseStorePassword.isNullOrBlank() &&
+        !releaseKeyAlias.isNullOrBlank() &&
+        !releaseKeyPassword.isNullOrBlank()
+
     defaultConfig {
         applicationId = "ro.pana.sleepybaby"
         minSdk = 24
@@ -23,13 +32,48 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            if (isReleaseSigningConfigured) {
+                storeFile = file(releaseStoreFilePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            } else {
+                project.logger.warn(
+                    "SleepyBaby release signing config missing. " +
+                        "Add sleepybabyReleaseStoreFile, sleepybabyReleaseStorePassword, " +
+                        "sleepybabyReleaseKeyAlias and sleepybabyReleaseKeyPassword to gradle.properties."
+                )
+            }
+        }
+    }
+
     buildTypes {
-        release {
-            isMinifyEnabled = false
+        getByName("debug") {
+            isDebuggable = true
+            versionNameSuffix = "-debug"
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = false
+            manifestPlaceholders["performanceCollectionEnabled"] = false
+            buildConfigField("Boolean", "ENABLE_ANALYTICS", "false")
+            buildConfigField("Boolean", "ENABLE_CRASHLYTICS", "false")
+            buildConfigField("Boolean", "ENABLE_PERFORMANCE_MONITORING", "false")
+        }
+        getByName("release") {
+            isDebuggable = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = true
+            manifestPlaceholders["performanceCollectionEnabled"] = true
+            buildConfigField("Boolean", "ENABLE_ANALYTICS", "true")
+            buildConfigField("Boolean", "ENABLE_CRASHLYTICS", "true")
+            buildConfigField("Boolean", "ENABLE_PERFORMANCE_MONITORING", "true")
+            if (isReleaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
@@ -41,6 +85,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.4"

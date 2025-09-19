@@ -7,8 +7,6 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
-import com.google.firebase.crashlytics.ktx.crashlytics
-import com.google.firebase.ktx.Firebase
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.*
@@ -22,6 +20,7 @@ import ro.pana.sleepybaby.core.ai.ClassificationResult
 import ro.pana.sleepybaby.core.ai.CryClassifier
 import ro.pana.sleepybaby.core.ai.EnergyCryClassifierMel
 import ro.pana.sleepybaby.core.ai.MelSpecExtractor
+import ro.pana.sleepybaby.analytics.CrashReporter
 import kotlin.math.log10
 import kotlin.math.roundToInt
 
@@ -100,7 +99,7 @@ class CryDetectionEngine(
             Log.d(TAG, "Engine started")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start engine", e)
-            Firebase.crashlytics.recordException(e)
+            CrashReporter.recordException(e)
             stop()
         }
     }
@@ -195,7 +194,7 @@ class CryDetectionEngine(
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "Processing error: ${e.message}")
-                    Firebase.crashlytics.recordException(e)
+                    CrashReporter.recordException(e)
                 }
                 delay(currentConfig.samplePeriodMs)
             }
@@ -301,7 +300,7 @@ class CryDetectionEngine(
                 Log.i(TAG, "Shush playback completed")
             } catch (e: Exception) {
                 Log.e(TAG, "Playback cycle failed", e)
-                Firebase.crashlytics.recordException(e)
+                CrashReporter.recordException(e)
             } finally {
                 noisePlayer?.stop()
                 enterPostPlaybackPause()
