@@ -19,12 +19,19 @@ android {
         !releaseKeyAlias.isNullOrBlank() &&
         !releaseKeyPassword.isNullOrBlank()
 
+    // Semantic versioning from gradle.properties
+    val versionMajor = (project.findProperty("VERSION_MAJOR") as String?)?.toInt() ?: 1
+    val versionMinor = (project.findProperty("VERSION_MINOR") as String?)?.toInt() ?: 0
+    val versionPatch = (project.findProperty("VERSION_PATCH") as String?)?.toInt() ?: 0
+    val computedVersionCode = versionMajor * 10000 + versionMinor * 100 + versionPatch
+    val computedVersionName = "$versionMajor.$versionMinor.$versionPatch"
+
     defaultConfig {
         applicationId = "ro.pana.sleepybaby"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = computedVersionCode
+        versionName = computedVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
