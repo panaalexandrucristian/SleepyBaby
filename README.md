@@ -1,14 +1,16 @@
-# SleepyBaby – Cry Detection & Soothing
+# SleepyBaby – On‑device Cry Detection & Soothing
 
-SleepyBaby is an Android app built with Jetpack Compose that detects crying locally using a lightweight energy-based approach and plays a soothing shush loop. Everything runs offline—no external ML models or cloud services are required.
+SleepyBaby is an Android app built with Jetpack Compose Material 3 that detects crying locally using a lightweight energy‑based approach and plays a soothing shush loop (or your own recording). Everything runs on‑device — no cloud audio processing, no account.
 
 ## Features
 
-- **Local detection** that analyses mel-spectrogram energy to decide when to react.
-- **Foreground service** that keeps automation alive with a persistent notification.
-- **Personal shush recording**: capture a 10s sample, preview it, and keep monitoring gated until a custom loop exists.
-- **Material 3 UI** with a blue & white palette, immersive full-screen mode, and an in-app brightness slider for night use.
-- **Persistent settings** via DataStore for cry/silence thresholds, target volume, and automation state.
+- **On‑device cry detection** using mel‑spectrogram energy — fast and private.
+- **Automatic soothing**: play a gentle shush loop or your own recording when crying is detected.
+- **One‑tap monitoring** with clear live status in a **foreground service** (persistent notification).
+- **Calm controls**: smooth volume ramping and an in‑app brightness slider for night use.
+- **Modern Material 3** expressive design with light/dark support and motion.
+- **Privacy‑first**: audio stays on your phone; no account; limited diagnostics in release only (see Privacy).
+- **Persistent settings** via DataStore for monitoring state, target volume, and display preferences.
 
 ## Getting Started
 
@@ -33,8 +35,34 @@ app/src/main/assets/
 
 1. Launch the app and grant microphone (and notification, if prompted) permissions.
 2. Record your own shush in the **Active monitoring** section; monitoring stays disabled until a custom track is saved.
-3. Adjust cry/silence thresholds, target volume, and screen brightness to match your nursery.
-4. Start monitoring—the foreground service keeps listening and plays the loop whenever crying is detected, then fades out when silence returns.
+3. Adjust target volume and screen brightness to match your nursery.
+4. Start monitoring — the foreground service keeps listening and plays the loop whenever crying is detected, then fades out when silence returns.
+
+## Build Variants & Firebase
+
+- `debug` build:
+  - Analytics/Crashlytics/Performance collection disabled by default.
+  - Safe for local development; no production telemetry.
+- `release` build:
+  - Analytics/Crashlytics/Performance enabled to collect limited, pseudonymous diagnostics that help reliability.
+  - Requires a valid `app/google-services.json` tied to `ro.pana.sleepybaby`.
+
+## Versioning
+
+Semantic version is defined in `gradle.properties` and translated to Android’s integer `versionCode`:
+
+- `VERSION_MAJOR`, `VERSION_MINOR`, `VERSION_PATCH` → `versionName = MAJOR.MINOR.PATCH`
+- `versionCode = MAJOR*10000 + MINOR*100 + PATCH`
+
+Example for 1.0.0:
+
+```
+VERSION_MAJOR=1
+VERSION_MINOR=0
+VERSION_PATCH=0
+```
+
+Increment `versionCode` implicitly by bumping any of the above.
 
 ## Architecture
 
@@ -47,7 +75,7 @@ app/src/main/assets/
 ## Technical Notes
 
 - **AudioRecord** at 16 kHz mono with 1-second windows and overlap.
-- **Jetpack Compose Material 3** theming, tuned for blue/white branding and full-screen layouts.
+- **Jetpack Compose Material 3** expressive theming and full‑screen layouts.
 - **Media3 ExoPlayer** for seamless loop playback and previews.
 - **Coroutines** with `StateFlow` to deliver reactive updates to the UI and notification layer.
 
@@ -56,6 +84,28 @@ app/src/main/assets/
 ```bash
 ./gradlew test
 ```
+
+## Release (Play Store)
+
+1. Create an upload keystore (once):
+   - `keytool -genkeypair -v -keystore ~/sleepybaby-upload.jks -alias sleepybaby-upload -keyalg RSA -keysize 2048 -validity 36500`
+2. Add signing secrets (prefer `~/.gradle/gradle.properties`):
+   - `sleepybabyReleaseStoreFile=/Users/<you>/sleepybaby-upload.jks`
+   - `sleepybabyReleaseStorePassword=***`
+   - `sleepybabyReleaseKeyAlias=sleepybaby-upload`
+   - `sleepybabyReleaseKeyPassword=***`
+3. Build bundle: `./gradlew clean :app:bundleRelease`
+   - Output: `app/build/outputs/bundle/release/app-release.aab`
+4. Enable Play App Signing and upload the `.aab` to your chosen track.
+
+## Firebase & Privacy
+
+- Uses Google Firebase in production builds only:
+  - **Analytics**: usage events (e.g., monitoring start/stop, tutorial actions) to improve UX.
+  - **Crashlytics**: crash and non‑fatal error reports to improve stability.
+  - **Performance Monitoring**: traces/timings to diagnose slow paths.
+- Audio never leaves the device; no account or personal profile is required.
+- See the full policy: `docs/privacy_policy.md`.
 
 ## License
 
