@@ -1,0 +1,13 @@
+# Gradle build output
+.gradle/
+.gradle-home/
+**/build/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+local.properties
+.claude/
+
+# OS artifacts
+.DS_Store

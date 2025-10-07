@@ -1,0 +1,171 @@
+package com.sleepybaby.ui
+
+import android.Manifest
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.widget.Toast
+import android.os.IBinder
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.sleepybaby.data.SettingsRepository
+import com.sleepybaby.core.ai.OnDeviceCryClassifier
+import com.sleepybaby.service.SleepyBabyService
+import com.sleepybaby.ui.theme.SleepyBabyTheme
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+class MainActivity : ComponentActivity() {
+
+    private var sleepyBabyService: SleepyBabyService? by mutableStateOf(null)
+    private var bound = false
+    private lateinit var settingsRepository: SettingsRepository
+    private var hasAudioPermission by mutableStateOf(false)
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasAudioPermission = isGranted
+        if (!isGranted) {
+            Toast.makeText(
+                this,
+                getString(com.sleepybaby.R.string.microphone_permission_required),
+                Toast.LENGTH_LONG
+            ).show()
+            lifecycleScope.launch {
+                settingsRepository.updateEnabled(false)
+            }
+        }
+    }
+
+    private val requestNotificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* no-op, foreground notification updates show rationale via system UI */ }
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            val binder = service as SleepyBabyService.SleepyBabyBinder
+            sleepyBabyService = binder.getService()
+            bound = true
+            lifecycleScope.launch {
+                val config = settingsRepository.automationConfig.first()
+                sleepyBabyService?.updateConfig(config)
+
+                when (sleepyBabyService?.initializeClassifier()) {
+                    OnDeviceCryClassifier.Backend.ONNX,
+                    OnDeviceCryClassifier.Backend.TFLITE -> {
+                        Toast.makeText(
+                            this@MainActivity,
+                            getString(com.sleepybaby.R.string.on_device_models_loaded),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    OnDeviceCryClassifier.Backend.ENERGY -> {
+                        Toast.makeText(
+                            this@MainActivity,
+                            getString(com.sleepybaby.R.string.on_device_energy_fallback),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    OnDeviceCryClassifier.Backend.UNINITIALIZED, null -> {
+                        Toast.makeText(
+                            this@MainActivity,
+                            getString(com.sleepybaby.R.string.on_device_models_missing),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+
+                val shouldEnable = settingsRepository.isEnabled.first()
+                if (hasAudioPermission && shouldEnable) {
+                    sleepyBabyService?.startDetection()
+                } else {
+                    sleepyBabyService?.stopDetection()
+                }
+            }
+        }
+
+        override fun onServiceDisconnected(arg0: ComponentName) {
+            bound = false
+            sleepyBabyService = null
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        settingsRepository = SettingsRepository(this)
+
+        checkAudioPermission()
+        checkNotificationPermission()
+
+        setContent {
+            SleepyBabyTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    SleepyBabyScreen(
+                        service = sleepyBabyService,
+                        settingsRepository = settingsRepository,
+                        hasAudioPermission = hasAudioPermission
+                    )
+                }
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Intent(this, SleepyBabyService::class.java).also { intent ->
+            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (bound) {
+            unbindService(serviceConnection)
+            bound = false
+            sleepyBabyService = null
+        }
+    }
+
+    private fun checkAudioPermission() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                // Permission already granted
+                hasAudioPermission = true
+            }
+            else -> {
+                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        }
+    }
+
+    private fun checkNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) return
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+}

@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">SleepyBaby</string>
+    <string name="microphone_permission_required">Microphone permission is required for cry detection.</string>
+    <string name="microphone_permission_instructions">Grant the microphone permission from system settings to enable detection.</string>
+    <string name="on_device_models_missing">Unable to initialize cry classifier. Check AI model files and try again.</string>
+    <string name="on_device_models_loaded">AI models loaded successfully.</string>
+    <string name="reload_ai_models">Reload AI Models</string>
+    <string name="ai_backend_on_device_info">Uses ONNX (preferred) or TFLite models from assets. Falls back to a local energy heuristic if models are missing.</string>
+    <string name="on_device_energy_fallback">Using local energy-based detection.</string>
+    <string name="shush_recording_title">Record your “shh” sample</string>
+    <string name="shush_recording_description">Hold the phone close and whisper “shh” for 10 seconds. SleepyBaby will loop your own recording whenever it detects crying.</string>
+    <string name="shush_record_button">Record 10s “shh”</string>
+    <string name="shush_recording_in_progress">Recording…</string>
+    <string name="shush_recording_countdown">%1$d seconds left</string>
+    <string name="shush_record_success">Custom shushing loop saved.</string>
+    <string name="shush_record_failure">Recording failed. Please try again.</string>
+    <string name="shush_record_available">Personal shushing loop active.</string>
+    <string name="shush_record_missing">No personal recording yet.</string>
+    <string name="shush_preview_button_play">Play recording</string>
+    <string name="shush_preview_button_stop">Stop preview</string>
+    <string name="shush_preview_playing">Playing your shushing loop.</string>
+    <string name="shush_preview_finished">Preview finished.</string>
+    <string name="shush_preview_stopped">Preview stopped.</string>
+    <string name="shush_preview_failed">Unable to play recording.</string>
+</resources>
